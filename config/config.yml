@@ -1,0 +1,6 @@
+env: "local" # Окружение - local, dev или prod,в первую очередь для логгера
+dsn: "postgres://postgres:qwerty@localhost:5434/postgres?sslmode=disable"
+http_server: # конфигурация нашего http-сервера
+  address: "localhost:8080"
+  timeout: 4s
+  idle_timeout: 30s

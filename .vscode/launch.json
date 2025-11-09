@@ -1,0 +1,41 @@
+{
+    // Используйте IntelliSense, чтобы узнать о возможных атрибутах.
+    // Наведите указатель мыши, чтобы просмотреть описания существующих атрибутов.
+    // Для получения дополнительной информации посетите: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Env +",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cmd/app/main.go",
+            "env": {
+                "CONFIG_PATH":"${workspaceFolder}/config/config.yml",
+                "DATABASE_DSN":"postgres://postgres:qwerty@localhost:5434/postgres?sslmode=disable"
+            }
+        },
+        {
+            "name": "Args +",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cmd/app/main.go",
+            "args": [
+                "-a",
+                "localhost:8080",
+                "--d",
+                "postgres://postgres:qwerty@localhost:5434/postgres?sslmode=disable",
+                "--f",
+                "debugArgs.json"
+            ]
+        },
+        {
+            "name": "Only debug",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cmd/app/main.go"
+        }
+    ]
+}
