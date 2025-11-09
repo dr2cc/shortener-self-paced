@@ -34,7 +34,7 @@ func NewPostgresRepo(log *slog.Logger, cfg *config.Config) (*PostgresRepo, error
 	// }
 
 	// 1. Подключение к базе
-	db, err := sql.Open("postgres", cfg.DSN)
+	db, err := sql.Open("postgres", cfg.DatabaseDSN)
 	if err != nil {
 		log.Error("DB connection error", sl.Err(err))
 		return nil, fmt.Errorf("connection error: %v", err)

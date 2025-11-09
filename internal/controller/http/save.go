@@ -1,4 +1,4 @@
-package save
+package handlers
 
 import (
 	"app/internal/entity"
@@ -9,10 +9,7 @@ import (
 	"net/http"
 )
 
-type Handler struct {
-	Repo *pg.PostgresRepo
-}
-
+// save.New (expand)
 func (h Handler) New(randomKey random.RandomGenerator, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		url, err := io.ReadAll(r.Body)

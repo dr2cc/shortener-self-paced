@@ -3,7 +3,7 @@ package server
 import (
 	"app/internal/config"
 	v1 "app/internal/controller/http/v1"
-	"app/internal/repository/pg"
+	storage "app/internal/repository"
 	"app/internal/usecase/logger/sl"
 	"app/internal/usecase/random"
 	"app/pkg/httpserver"
@@ -53,11 +53,13 @@ func (a *App) Run(cfg *config.Config) {
 	log.Debug("logger debug mode enabled")
 
 	// Repository🧹🏦
-	repo, err := pg.NewPostgresRepo(log, cfg)
-	if err != nil {
-		log.Error("failed to connect storage")
-		os.Exit(1)
-	}
+	repo := storage.GetRepo(log, cfg)
+	// //
+	// repo, err := pg.NewPostgresRepo(log, cfg)
+	// if err != nil {
+	// 	log.Error("failed to connect storage")
+	// 	os.Exit(1)
+	// }
 
 	// Use-Case🧹🏦
 	// В данный момент именно service я не создаю. Сложно..

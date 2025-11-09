@@ -4,7 +4,7 @@ import (
 	"app/internal/config"
 	"app/internal/controller/http/v1/save"
 	"app/internal/controller/ping"
-	"app/internal/repository/pg"
+	storage "app/internal/repository"
 	myLog "app/internal/usecase/middleware/logger"
 	"app/internal/usecase/random"
 	"log/slog"
@@ -13,7 +13,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 )
 
-func Router(router *chi.Mux, cfg *config.Config, repoPg *pg.PostgresRepo, randomKey random.RandomGenerator, log *slog.Logger) {
+func Router(router *chi.Mux, cfg *config.Config, repo storage.Repository, randomKey random.RandomGenerator, log *slog.Logger) {
 	// Middleware встроенный в chi
 	router.Use(middleware.RequestID) // Трассировка. Добавляется request_id в каждый запрос
 	router.Use(middleware.Logger)    // Логирование всех запросов
@@ -25,11 +25,11 @@ func Router(router *chi.Mux, cfg *config.Config, repoPg *pg.PostgresRepo, random
 	router.Use(middleware.URLFormat) // Парсер URLов поступающих запросов. Удалит суффикс из пути маршрутизации и продолжит маршрутизацию
 
 	handlers := save.Handler{
-		Repo: repoPg,
+		Repo: repo,
 	}
 
 	// handlers
-	router.Get("/healthDB", ping.HealthCheck(repoPg, log))
+	router.Get("/healthDB", ping.HealthCheck(repo, log))
 	//router.Post("/", save.New(repo, randomKey, log))
 	router.Post("/", handlers.New(randomKey, log))
 
