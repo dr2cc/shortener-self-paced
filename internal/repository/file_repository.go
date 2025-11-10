@@ -130,6 +130,17 @@ func (repo *FileRepository) GetByID(_ context.Context, id string) (entity.ShortU
 	return entity.ShortURL{}, errors.New("can't find full url by id")
 }
 
+// Close closes file.
+func (repo *FileRepository) Close(_ context.Context) error {
+	return repo.file.Close()
+}
+
+// Check checks if file is ok.
+func (repo *FileRepository) Check(_ context.Context) error {
+	_, err := repo.file.Stat()
+	return err
+}
+
 // // GetUsersUrls reads the file line by line and returning all the urls
 // // that were created by user with id userID.
 // func (repo *FileRepository) GetUsersUrls(_ context.Context, userID string) ([]entity.ShortURL, error) {
@@ -160,17 +171,6 @@ func (repo *FileRepository) GetByID(_ context.Context, id string) (entity.ShortU
 // 	}
 
 // 	return URLs, nil
-// }
-
-// // Close closes file.
-// func (repo *FileRepository) Close(_ context.Context) error {
-// 	return repo.file.Close()
-// }
-
-// // Check checks if file is ok.
-// func (repo *FileRepository) Check(_ context.Context) error {
-// 	_, err := repo.file.Stat()
-// 	return err
 // }
 
 // // DeleteUrls deletes all given urls.

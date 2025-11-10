@@ -73,6 +73,17 @@ func (repo *InMemoryRepository) GetByID(_ context.Context, id string) (entity.Sh
 	return url, nil
 }
 
+// Close clears map.
+func (repo *InMemoryRepository) Close(_ context.Context) error {
+	repo.storage = make(map[string]entity.ShortURL)
+	return nil
+}
+
+// Check is just a stub.
+func (repo *InMemoryRepository) Check(_ context.Context) error {
+	return nil
+}
+
 // // GetUsersUrls gets all the urls that were created by the user with the given id.
 // func (repo *InMemoryRepository) GetUsersUrls(_ context.Context, userID string) ([]entity.ShortURL, error) {
 // 	repo.mutex.RLock()
@@ -84,17 +95,6 @@ func (repo *InMemoryRepository) GetByID(_ context.Context, id string) (entity.Sh
 // 	}
 // 	repo.mutex.RUnlock()
 // 	return URLs, nil
-// }
-
-// // Close clears map.
-// func (repo *InMemoryRepository) Close(_ context.Context) error {
-// 	repo.storage = make(map[string]entity.ShortURL)
-// 	return nil
-// }
-
-// // Check is just a stub.
-// func (repo *InMemoryRepository) Check(_ context.Context) error {
-// 	return nil
 // }
 
 // // DeleteUrls deletes all given urls.

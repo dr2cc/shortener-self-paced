@@ -4,10 +4,8 @@ package storage
 import (
 	"app/internal/config"
 	"app/internal/entity"
-	"app/internal/repository/pg"
 	"context"
 	"log/slog"
-	"os"
 )
 
 // NotUniqueURLError is error occurred when saving url is already exists.
@@ -37,9 +35,9 @@ var ErrNotUnique = func() error { return &NotUniqueURLError{} }()
 type Repository interface {
 	Save(ctx context.Context, shortURL entity.ShortURL) error
 	GetByID(ctx context.Context, id string) (entity.ShortURL, error)
+	Close(_ context.Context) error
+	Check(ctx context.Context) error
 	// GetUsersUrls(ctx context.Context, userID string) ([]entity.ShortURL, error)
-	// Close(_ context.Context) error
-	// Check(ctx context.Context) error
 	// SaveBatch(ctx context.Context, batch []entity.ShortURL) error
 	// DeleteUrls(ctx context.Context, urls []entity.ShortURL) error
 	// GetUsersAndUrlsCount(ctx context.Context) (int, int, error)
@@ -48,18 +46,19 @@ type Repository interface {
 // GetRepo is fabric that returns
 // repository implementation based on cfg.
 func GetRepo(log *slog.Logger, cfg *config.Config) Repository {
-	if cfg.DatabaseDSN != "" {
-		// repo, err := NewPgRepository(cfg.DatabaseDSN, cfg.MigrationsPath)
-		// if err != nil {
-		// 	panic(err)
-		// }
-		repo, err := pg.NewPostgresRepo(log, cfg)
-		if err != nil {
-			log.Error("failed to connect storage")
-			os.Exit(1)
-		}
-		return repo
-	}
+	// // TODO: Шаг 2- pg
+	// if cfg.DatabaseDSN != "" {
+	// 	// repo, err := NewPgRepository(cfg.DatabaseDSN, cfg.MigrationsPath)
+	// 	// if err != nil {
+	// 	// 	panic(err)
+	// 	// }
+	// 	repo, err := pg.NewPostgresRepo(log, cfg)
+	// 	if err != nil {
+	// 		log.Error("failed to connect storage")
+	// 		os.Exit(1)
+	// 	}
+	// 	return repo
+	// }
 	if cfg.FilePath != "" {
 		repo, err := NewFileRepository(cfg.FilePath)
 		if err != nil {
