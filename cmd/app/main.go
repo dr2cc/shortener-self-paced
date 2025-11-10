@@ -14,6 +14,6 @@ func main() {
 	}
 
 	// Run
-	app := app.NewApp()
+	//app := app.NewApp()
 	app.Run(cfg)
 }
