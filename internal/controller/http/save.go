@@ -1,37 +1,59 @@
 package handlers
 
 import (
-	"app/internal/usecase/random"
-	"log/slog"
+	"app/internal/entity"
+	"io"
 	"net/http"
 )
 
-// save.New (expand)
-func (h Handler) New(randomKey random.RandomGenerator, log *slog.Logger) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// url, err := io.ReadAll(r.Body)
-		// if err != nil {
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
+// Shorten (save.New)
+func (h *Handler) New(w http.ResponseWriter, r *http.Request) {
+	// Получается этого хватает, а все остальное делает
+	// chi..Use(middleware.Compress ??!
+	reader, err := getDecompressedReader(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	//
 
-		// if string(url) == "" {
-		// 	http.Error(w, "content required", http.StatusBadRequest)
-		// 	return
-		// }
-		// defer r.Body.Close()
+	url, err := io.ReadAll(reader)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-		// shortUrl := entity.ShortURL{
-		// 	OriginalURL: string(url),
-		// 	ID:          randomKey.NewRandomString(),
-		// }
+	if string(url) == "" {
+		http.Error(w, "url required", http.StatusBadRequest)
+		return
+	}
 
-		// // TODO: Шаг 2- pg
-		// err = pg.CreateRecord(log, shortUrl, h.Repo)
-		// if err != nil {
-		// 	log.Error(err.Error())
-		// 	http.Error(w, "failed to add record", http.StatusBadRequest)
-		// 	return
-		// }
+	// userID := h.getUserID(r)
+
+	shortURL, err := h.service.Shorten(r.Context(), string(url)) // , userID
+
+	// var notUniqueErr *storage.NotUniqueURLError
+	// if errors.As(err, &notUniqueErr) {
+	// 	writeShorteningResult(w, h, shortURL, http.StatusConflict)
+	// 	return
+	// }
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// if err = h.addEncryptedUserIDToCookie(&w, userID); err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// }
+
+	writeShorteningResult(w, h, shortURL, http.StatusCreated)
+}
+
+func writeShorteningResult(w http.ResponseWriter, h *Handler, shortURL entity.ShortURL, status int) {
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(status)
+	shortenedURL := h.service.FormatShortURL(shortURL.ID)
+	if _, err := w.Write([]byte(shortenedURL)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

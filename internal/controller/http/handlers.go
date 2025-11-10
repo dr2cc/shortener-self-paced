@@ -18,16 +18,16 @@ const UserIDCookieName = "shortener-user-id"
 // // NewRouter creates a new router, adds some middleware, and then adds some routes
 // func NewRouter(service *services.Shortener, ipChecker services.IPCheckerInterface, config *config.Config) chi.Router {
 func NewRouter(service *services.Shortener, config *config.Config) chi.Router {
-	r := chi.NewRouter()
+	router := chi.NewRouter()
 
-	r.Use(middleware.RequestID)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Compress(flate.BestSpeed))
+	router.Use(middleware.RequestID)
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.Compress(flate.BestSpeed))
 
-	// h := NewHandler(service, config)
+	h := NewHandler(service, config)
 
 	// r.Get("/{id}", h.Expand)
-	// r.Post("/", h.Shorten)
+	router.Post("/", h.New)
 
 	// r.Post("/api/shorten", h.ShortenAPI)
 	// // iter10
@@ -68,7 +68,7 @@ func NewRouter(service *services.Shortener, config *config.Config) chi.Router {
 	// 	r.Get("/api/internal/stats", h.Stats)
 	// })
 
-	return r
+	return router
 }
 
 // func FromTrustedSubnet(checkerInterface services.IPCheckerInterface) func(http.Handler) http.Handler {

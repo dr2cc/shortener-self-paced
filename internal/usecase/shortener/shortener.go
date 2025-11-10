@@ -14,7 +14,7 @@ import (
 
 type ShortenerInterface interface {
 	// r.Post("/", h.Shorten)
-	Shorten(ctx context.Context, url string, userID string) (entity.ShortURL, error)
+	New(ctx context.Context, url string, userID string) (entity.ShortURL, error)
 	// r.Get("/{id}", h.Expand)
 	Expand(ctx context.Context, id string) (entity.ShortURL, error)
 	// FormatShortURL(urlID string) string
@@ -116,10 +116,10 @@ func (service *Shortener) HealthCheck(ctx context.Context) error {
 	return service.repository.Check(ctx)
 }
 
-// // FormatShortURL formats url id to full url.
-// func (service *Shortener) FormatShortURL(urlID string) string {
-// 	return fmt.Sprintf("%s/%s", service.config.BaseURL, urlID)
-// }
+// FormatShortURL formats url id to full url.
+func (service *Shortener) FormatShortURL(urlID string) string {
+	return fmt.Sprintf("%s/%s", service.config.BaseURL, urlID)
+}
 
 // // GetUrlsCreatedBy returns array of all urs that was shortened by given userID.
 // // It's just a wrapper for repository.GetUsersUrls.
