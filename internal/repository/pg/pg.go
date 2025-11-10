@@ -94,10 +94,10 @@ func checkTab(log *slog.Logger, repo *PostgresRepo) error {
 	return nil
 }
 
-func CreateRecord(log *slog.Logger, shortUrl entity.ShortURL, repo *PostgresRepo) error {
+func CreateRecord(log *slog.Logger, shortURL entity.ShortURL, repo *PostgresRepo) error {
 	const op = "repository.pg.CreateRecord" // Имя текущей функции для логов и ошибок
-	url := shortUrl.OriginalURL
-	alias := shortUrl.ID
+	url := shortURL.OriginalURL
+	alias := shortURL.ID
 	stmt, err := repo.DB.Prepare("INSERT INTO aliases(alias, url) VALUES($1, $2)")
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
