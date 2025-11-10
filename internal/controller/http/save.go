@@ -7,7 +7,7 @@ import (
 )
 
 // Shorten (save.New)
-func (h *Handler) New(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ShortText(w http.ResponseWriter, r *http.Request) {
 	// Получается этого хватает, а все остальное делает
 	// chi..Use(middleware.Compress ??!
 	reader, err := getDecompressedReader(r)

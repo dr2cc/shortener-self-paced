@@ -4,7 +4,6 @@ import (
 	"app/internal/entity"
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 )
 
@@ -61,7 +60,6 @@ func (repo *InMemoryRepository) Save(_ context.Context, shortURL entity.ShortURL
 
 // GetByID gets the url by id.
 func (repo *InMemoryRepository) GetByID(_ context.Context, id string) (entity.ShortURL, error) {
-	fmt.Println("или тут GetByID?")
 	repo.mutex.RLock()
 	url, ok := repo.storage[id]
 	repo.mutex.RUnlock()

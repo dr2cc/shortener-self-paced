@@ -14,9 +14,9 @@ import (
 
 type ShortenerInterface interface {
 	// r.Post("/", h.Shorten)
-	New(ctx context.Context, url string, userID string) (entity.ShortURL, error)
+	ShortText(ctx context.Context, url string, userID string) (entity.ShortURL, error)
 	// r.Get("/{id}", h.Expand)
-	Expand(ctx context.Context, id string) (entity.ShortURL, error)
+	Redirect(ctx context.Context, id string) (entity.ShortURL, error)
 	// FormatShortURL(urlID string) string
 	// GetUrlsCreatedBy(ctx context.Context, userID string) ([]entity.ShortURL, error)
 	// HealthCheck(ctx context.Context) error

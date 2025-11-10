@@ -26,8 +26,8 @@ func NewRouter(service *services.Shortener, config *config.Config) chi.Router {
 
 	h := NewHandler(service, config)
 
-	// r.Get("/{id}", h.Expand)
-	router.Post("/", h.New)
+	router.Get("/{id}", h.Redirect)
+	router.Post("/", h.ShortText)
 
 	// r.Post("/api/shorten", h.ShortenAPI)
 	// // iter10
