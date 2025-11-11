@@ -1,6 +1,12 @@
 env: "local" # Окружение - local, dev или prod,в первую очередь для логгера
-dsn: "postgres://postgres:qwerty@localhost:5434/postgres?sslmode=disable"
-http_server: # конфигурация нашего http-сервера
-  address: "localhost:8080"
-  timeout: 4s
-  idle_timeout: 30s
+databaseDSN: "postgres://postgres:qwerty@localhost:5434/postgres?sslmode=disable"
+ServerAddress: "localhost:8080"
+
+# type Config struct {
+#     Env           string `yaml:"env" env-default:"local"`
+#     ServerAddress string `json:"server_address"`
+#     BaseURL       string `json:"base_url"`
+#     FilePath      string `json:"file_storage_path"`
+#     DatabaseDSN   string `json:"database_dsn"`
+#     ConfigPath    string
+# }
