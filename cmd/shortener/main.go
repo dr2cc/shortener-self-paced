@@ -7,13 +7,12 @@ import (
 )
 
 func main() {
-	// 1️⃣ Configuration
+	// Configuration
 	cfg, err := config.NewConfig()
 	if err != nil {
 		log.Fatalf("Config error: %s", err)
 	}
 
 	// Run
-	//app := app.NewApp()
 	app.Run(cfg)
 }
