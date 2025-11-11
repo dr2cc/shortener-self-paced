@@ -3,31 +3,57 @@ package handlers
 
 import (
 	"app/internal/config"
+	mwLogger "app/internal/usecase/middleware/logger"
 	services "app/internal/usecase/shortener"
 	"compress/flate"
 	"compress/gzip"
 	"io"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-const UserIDCookieName = "shortener-user-id"
+type Handler struct {
+	Mux     *chi.Mux            // router that we'll be using to handle our requests
+	service *services.Shortener // service that will contain main business logic
+	// crypto  crypto.Cryptographer // interface that we'll use to encrypt and decrypt values
+}
+
+// NewHandler creates a new instance of the Handler struct, initializes the chi mux, and sets the service and crypto fields
+func NewHandler(service *services.Shortener, config *config.Config) *Handler {
+	// cryptographer := crypto.GCMAESCryptographer{Key: config.EncryptionKey, Random: service.Random}
+	return &Handler{
+		Mux:     chi.NewMux(),
+		service: service,
+		// crypto:  &cryptographer,
+	}
+}
 
 // // NewRouter creates a new router, adds some middleware, and then adds some routes
-// func NewRouter(service *services.Shortener, ipChecker services.IPCheckerInterface, config *config.Config) chi.Router {
-func NewRouter(service *services.Shortener, config *config.Config) chi.Router {
+func NewRouter(service *services.Shortener, cfg *config.Config, log *slog.Logger) chi.Router {
 	router := chi.NewRouter()
 
 	router.Use(middleware.RequestID)
+	router.Use(middleware.Logger)
+	router.Use(mwLogger.New(log))
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.Compress(flate.BestSpeed))
 
-	h := NewHandler(service, config)
+	h := NewHandler(service, cfg)
 
 	router.Get("/{id}", h.Redirect)
-	router.Post("/", h.ShortText)
+	router.Post("/", h.ShortenText)
+
+	// // При простой аутентификации, можно использовать такую конструкцию:
+	// router.Route("/", func(r chi.Router) {
+	// 	r.Use(middleware.BasicAuth("url-shortener", map[string]string{
+	// 		cfg.User: cfg.Password,
+	// 	}))
+
+	// 	r.Post("/", h.ShortText)
+	// })
 
 	// r.Post("/api/shorten", h.ShortenAPI)
 	// // iter10
@@ -89,22 +115,6 @@ func NewRouter(service *services.Shortener, config *config.Config) chi.Router {
 // 		})
 // 	}
 // }
-
-type Handler struct {
-	Mux     *chi.Mux            // router that we'll be using to handle our requests
-	service *services.Shortener // service that will contain main business logic
-	// crypto  crypto.Cryptographer // interface that we'll use to encrypt and decrypt values
-}
-
-// NewHandler creates a new instance of the Handler struct, initializes the chi mux, and sets the service and crypto fields
-func NewHandler(service *services.Shortener, config *config.Config) *Handler {
-	// cryptographer := crypto.GCMAESCryptographer{Key: config.EncryptionKey, Random: service.Random}
-	return &Handler{
-		Mux:     chi.NewMux(),
-		service: service,
-		// crypto:  &cryptographer,
-	}
-}
 
 // If the request body is gzipped, return a gzip reader, otherwise return the request body (default reader)
 func getDecompressedReader(r *http.Request) (io.Reader, error) {

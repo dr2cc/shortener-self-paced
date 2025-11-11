@@ -2,6 +2,7 @@ package app
 
 import (
 	"app/internal/config"
+	handlers "app/internal/controller/rest"
 	storage "app/internal/repository"
 	"app/internal/server"
 	"app/internal/usecase/logger/sl"
@@ -26,7 +27,7 @@ const (
 // Run creates objects (via constructors!)
 func Run(cfg *config.Config) {
 	log := setupLogger(cfg.Env)
-	log.Info("init server", slog.String("address", cfg.ServerAddress)) // Помимо сообщения выведем параметр с адресом
+	log.Info("init server", slog.String("address", cfg.ServerAddress))
 	log.Debug("logger debug mode enabled")
 
 	// Repository🧹🏦
@@ -40,11 +41,13 @@ func Run(cfg *config.Config) {
 
 	// Use-Case🧹🏦
 	randomKey := random.RandomGenerator{}
-	// Создаю сущность этого сервиса
+	// Создаю "сущность" этого сервиса
 	service := services.New(randomKey, repo, cfg)
 
 	// HTTP Server🧹🏦
-	httpServer, err := server.New(cfg, service)
+	// В цепочке начинающейся с server.New находится и создание роутера с обработчиками
+	router := handlers.NewRouter(service, cfg, log)
+	httpServer, err := server.New(cfg, router) // service)
 	if err != nil {
 		log.Error("failed to create http server", sl.Err(err))
 		os.Exit(1)
@@ -56,7 +59,7 @@ func Run(cfg *config.Config) {
 	wg := &sync.WaitGroup{}
 	// TODO: готовлюсь к двум горутинам при добавлении сервера grpc
 	// тогда будет wg.Add(2)
-	wg.Add(1) //nolint:gomnd
+	wg.Add(1)
 
 	go runServer(ctx, wg, httpServer, "HTTP server", log)
 	// // когда добавлю grpc, то добавлю такую строку:

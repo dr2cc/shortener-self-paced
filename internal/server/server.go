@@ -1,9 +1,11 @@
-// Package server is wrapper around built in http server.
+// В пакете server создаем "оболочку" (wrapper)
+// вокруг встроенного метода http.Server
 package server
 
 import (
 	"app/internal/config"
-	services "app/internal/usecase/shortener"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type Server interface {
@@ -11,11 +13,7 @@ type Server interface {
 	Shutdown() error
 }
 
-// func New(config *config.Config, ipChecker services.IPCheckerInterface, service *services.Shortener) (Server, error) {
-func New(config *config.Config, service *services.Shortener) (Server, error) {
-	// if config.EnableHTTPS {
-	// 	return NewHTTPS(config, ipChecker, service)
-	// } else {
-	return NewHTTP(config, service)
-	//}
+func New(config *config.Config, router chi.Router) (Server, error) {
+	// Здесь будем выбирать между HTTP и HTTPS (инкремент 21)
+	return NewHTTP(config, router)
 }

@@ -3,11 +3,11 @@ package server
 
 import (
 	"app/internal/config"
-	handlers "app/internal/controller/http"
-	services "app/internal/usecase/shortener"
 	"context"
 	"net/http"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type HTTP struct {
@@ -24,10 +24,12 @@ func (s *HTTP) Shutdown() error {
 }
 
 // func NewHTTP(config *config.Config, ipChecker services.IPCheckerInterface, service *services.Shortener) (Server, error) {
-func NewHTTP(config *config.Config, service *services.Shortener) (Server, error) {
+func NewHTTP(config *config.Config, router chi.Router) (Server, error) {
 	httpServer := &http.Server{
-		Addr:              config.ServerAddress,
-		Handler:           handlers.NewRouter(service, config),
+		Addr: config.ServerAddress,
+		//Handler:           handlers.NewRouter(service, config),
+		// handler to invoke (обработчик для вызова)
+		Handler:           router,
 		ReadHeaderTimeout: 1 * time.Second,
 	}
 	server := &HTTP{
