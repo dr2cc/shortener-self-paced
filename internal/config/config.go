@@ -2,14 +2,13 @@
 package config
 
 import (
-	"crypto/aes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 )
 
-const KeySize = 2 * aes.BlockSize //nolint:gomnd
+// const KeySize = 2 * aes.BlockSize //nolint:gomnd
 
 type Config struct {
 	Env           string `yaml:"env" env-default:"local"`
