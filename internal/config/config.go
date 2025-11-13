@@ -20,7 +20,6 @@ type Config struct {
 	// MigrationsPath string
 	// TrustedSubnet  string `json:"trusted_subnet"`
 	// EncryptionKey  []byte
-	// EnableHTTPS    bool `json:"enable_https"`
 }
 
 // New reads the configuration from the command line flags,
