@@ -37,10 +37,7 @@ func NewConfig() (*Config, error) {
 		FilePath:      "",
 		DatabaseDSN:   "",
 		ConfigPath:    "",
-		// EncryptionKey:  key,
 		// MigrationsPath: getEnv("MIGRATIONS_PATH", "file://internal/app/storage/migrations/"),
-		// EnableHTTPS:    false,
-		// TrustedSubnet:  "",
 	}
 
 	flag.StringVar(&cfg.ServerAddress, "a", "", "host to listen on")
