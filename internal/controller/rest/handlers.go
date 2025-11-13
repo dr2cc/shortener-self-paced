@@ -45,17 +45,15 @@ func NewRouter(service *services.Shortener, cfg *config.Config, log *slog.Logger
 
 	router.Get("/{id}", h.Redirect)
 	router.Post("/", h.ShortenText)
-
 	// // При простой аутентификации, можно использовать такую конструкцию:
 	// router.Route("/", func(r chi.Router) {
 	// 	r.Use(middleware.BasicAuth("url-shortener", map[string]string{
 	// 		cfg.User: cfg.Password,
 	// 	}))
-
 	// 	r.Post("/", h.ShortText)
 	// })
 
-	// r.Post("/api/shorten", h.ShortenAPI)
+	router.Post("/api/shorten", h.ShortenAPI)
 	// // iter10
 	// // Добавьте в сервис хендлер GET /ping,
 	// // который при запросе проверяет соединение с базой данных.
