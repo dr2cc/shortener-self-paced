@@ -45,7 +45,6 @@ func Run(cfg *config.Config) {
 	service := services.New(randomKey, repo, cfg)
 
 	// HTTP Server🧹🏦
-	// В цепочке начинающейся с server.New находится и создание роутера с обработчиками
 	router := handlers.NewRouter(service, cfg, log)
 	restAPIserver, err := server.New(cfg, router) // service)
 	if err != nil {
@@ -61,9 +60,9 @@ func Run(cfg *config.Config) {
 	// тогда будет wg.Add(2)
 	wg.Add(1)
 
-	go runServer(ctx, wg, restAPIserver, "HTTP server", log)
-	// // когда добавлю grpc, то добавлю такую строку:
-	// go runServer(ctx, wg, grpcServer, "GRPC server")
+	go runServer(ctx, wg, restAPIserver, "REST API server", log)
+	// // когда добавлю gRPC, то добавлю такую строку:
+	// go runServer(ctx, wg, grpcAPIserver, "gRPC API server", log)
 
 	wg.Wait()
 
