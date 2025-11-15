@@ -15,7 +15,6 @@ func HealthCheck(repo *pg.PostgresRepo, log *slog.Logger) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			log.Error("Error connecting to the database:", sl.Err(err))
-
 			return
 		}
 	}
