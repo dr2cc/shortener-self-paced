@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// Expand url
+// Get the original URL
 func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 	uID := chi.URLParam(r, "id") //nolint:contextcheck
 

@@ -24,14 +24,8 @@ type PostgresRepo struct {
 
 // Инициализация подключения к PostgreSQL
 func NewPostgresRepo(log *slog.Logger, cfg *config.Config) (*PostgresRepo, error) {
-	// Getting DSN from environment variables
-	//dsn := os.Getenv("DATABASE_DSN")
-
-	// // dsn проверяем перед вызовом InitDB
-	// if dsn == "" {
-	// 	log.Error("DATABASE_DSN not specified in env")
-	// 	//os.Exit(1)
-	// }
+	// // DSN from environment variables
+	// dsn := os.Getenv("DATABASE_DSN")
 
 	// 1. Подключение к базе
 	db, err := sql.Open("postgres", cfg.DatabaseDSN)
@@ -39,8 +33,6 @@ func NewPostgresRepo(log *slog.Logger, cfg *config.Config) (*PostgresRepo, error
 		log.Error("DB connection error", sl.Err(err))
 		return nil, fmt.Errorf("connection error: %v", err)
 	}
-
-	// // Не забыть про defer!!
 	// defer db.Close()
 
 	// Настройки пула соединений
@@ -50,7 +42,7 @@ func NewPostgresRepo(log *slog.Logger, cfg *config.Config) (*PostgresRepo, error
 
 	// Проверяю подключение с таймаутом ответа
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	// освобождаем ресурс
+	// Всегда отменяем контекст, чтобы освободить его ресурсы
 	defer cancel()
 
 	if err := db.PingContext(ctx); err != nil {
@@ -85,7 +77,7 @@ func checkTab(log *slog.Logger, repo *PostgresRepo) error {
 	// Отправляем комманду (CREATE TABLE в данном случае)
 	// Exec выполняет подготовленный оператор (stmt) с заданными аргументами
 	// и возвращает [Result], суммирующий эффект оператора.
-	// В данной ситуации этот "эффект" не используется
+	// В данной ситуации это "побочный эффект" (не используется)
 	_, err = stmt.Exec()
 	if err != nil {
 		log.Error(err.Error())
@@ -108,23 +100,25 @@ func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ShortURL) er
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	//
 
 	return nil
 }
 
-// Stub function
+func (repo *PostgresRepo) Check(ctx context.Context) error {
+	return repo.DB.PingContext(ctx)
+}
+
 func (repo *PostgresRepo) GetByID(ctx context.Context, id string) (entity.ShortURL, error) {
-	return entity.ShortURL{}, nil
+	var ent entity.ShortURL
+	err := repo.DB.QueryRowContext(
+		ctx,
+		"select url, alias from aliases where alias=$1",
+		id,
+	).Scan(&ent.OriginalURL, &ent.ID)
+	return ent, err
 }
 
 // Stub function
 func (repo *PostgresRepo) Close(_ context.Context) error {
 	return nil
-}
-
-// Stub function
-func (repo *PostgresRepo) Check(ctx context.Context) error {
-	//return repo.conn.Ping(ctx)
-	return repo.DB.PingContext(ctx)
 }
