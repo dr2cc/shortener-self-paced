@@ -94,8 +94,8 @@ func checkTab(log *slog.Logger, repo *PostgresRepo) error {
 	return nil
 }
 
-func CreateRecord(log *slog.Logger, shortURL entity.ShortURL, repo *PostgresRepo) error {
-	const op = "repository.pg.CreateRecord" // Имя текущей функции для логов и ошибок
+func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ShortURL) error {
+	const op = "repository.pg.Save" // Имя текущей функции для логов и ошибок
 	url := shortURL.OriginalURL
 	alias := shortURL.ID
 	stmt, err := repo.DB.Prepare("INSERT INTO aliases(alias, url) VALUES($1, $2)")
@@ -111,4 +111,20 @@ func CreateRecord(log *slog.Logger, shortURL entity.ShortURL, repo *PostgresRepo
 	//
 
 	return nil
+}
+
+// Stub function
+func (repo *PostgresRepo) GetByID(ctx context.Context, id string) (entity.ShortURL, error) {
+	return entity.ShortURL{}, nil
+}
+
+// Stub function
+func (repo *PostgresRepo) Close(_ context.Context) error {
+	return nil
+}
+
+// Stub function
+func (repo *PostgresRepo) Check(ctx context.Context) error {
+	//return repo.conn.Ping(ctx)
+	return repo.DB.PingContext(ctx)
 }

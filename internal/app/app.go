@@ -32,14 +32,6 @@ func Run(cfg *config.Config) {
 
 	// Repository🧹🏦
 	repo := storage.GetRepo(log, cfg)
-	// // cannot use pg.NewPostgresRepo(log, cfg) (value of type *pg.PostgresRepo)
-	// // as storage.Repository value in assignment:
-	// // *pg.PostgresRepo does not implement storage.Repository (missing method Check)
-	// repo, err := pg.NewPostgresRepo(log, cfg)
-	// if err != nil {
-	// 	log.Error("failed to connect storage")
-	// 	os.Exit(1)
-	// }
 
 	// Use-Case🧹🏦
 	randomKey := random.RandomGenerator{}

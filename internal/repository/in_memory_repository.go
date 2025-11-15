@@ -77,7 +77,7 @@ func (repo *InMemoryRepository) Close(_ context.Context) error {
 	return nil
 }
 
-// Check is just a stub.
+// Stub function
 func (repo *InMemoryRepository) Check(_ context.Context) error {
 	return nil
 }

@@ -4,8 +4,10 @@ package storage
 import (
 	"app/internal/config"
 	"app/internal/entity"
+	"app/internal/repository/pg"
 	"context"
 	"log/slog"
+	"os"
 )
 
 // NotUniqueURLError is error occurred when saving url is already exists.
@@ -46,19 +48,18 @@ type Repository interface {
 // GetRepo is fabric that returns
 // repository implementation based on cfg.
 func GetRepo(log *slog.Logger, cfg *config.Config) Repository {
-	// // TODO: Шаг 2- pg
-	// if cfg.DatabaseDSN != "" {
-	// 	// repo, err := NewPgRepository(cfg.DatabaseDSN, cfg.MigrationsPath)
-	// 	// if err != nil {
-	// 	// 	panic(err)
-	// 	// }
-	// 	repo, err := pg.NewPostgresRepo(log, cfg)
-	// 	if err != nil {
-	// 		log.Error("failed to connect storage")
-	// 		os.Exit(1)
-	// 	}
-	// 	return repo
-	// }
+	if cfg.DatabaseDSN != "" {
+		// repo, err := NewPgRepository(cfg.DatabaseDSN, cfg.MigrationsPath)
+		// if err != nil {
+		// 	panic(err)
+		// }
+		repo, err := pg.NewPostgresRepo(log, cfg)
+		if err != nil {
+			log.Error("failed to connect pg storage")
+			os.Exit(1)
+		}
+		return repo
+	}
 	if cfg.FilePath != "" {
 		repo, err := NewFileRepository(cfg.FilePath)
 		if err != nil {
