@@ -60,10 +60,10 @@ func NewRouter(service *services.Shortener, cfg *config.Config, log *slog.Logger
 	// При успешной проверке хендлер должен вернуть HTTP-статус 200 OK, при неуспешной — 500 Internal Server Error.
 	//
 	router.Get("/ping", h.Ping)
-	// // iter12
-	// // Добавьте новый хендлер POST /api/shorten/batch,
-	// // принимающий в теле запроса множество URL для сокращения в формате:
-	// r.Post("/api/shorten/batch", h.ShortenBatchAPI)
+	// iter12
+	// Добавьте новый хендлер POST /api/shorten/batch,
+	// принимающий в теле запроса множество URL для сокращения в формате:
+	router.Post("/api/shorten/batch", h.BatchShortenAPI)
 
 	// //************************************************************************************
 	// // iter14
