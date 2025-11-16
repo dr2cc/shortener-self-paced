@@ -28,7 +28,6 @@ type ShortenerInterface interface {
 
 // Shortener is the main service of the application
 // Shortener — основной сервис приложения
-// ❗TODO: список главных структур handlers.Handler - services.Shortener - entity.ShortURL
 type Shortener struct {
 	Random     random.RandomGenerator
 	repository storage.Repository
@@ -127,24 +126,32 @@ func (service *Shortener) FormatShortURL(urlID string) string {
 // 	return service.repository.GetUsersUrls(ctx, userID)
 // }
 
-// // ShortenBatch shortens array of urls.
-// // All entries of batch must contain OriginalURL.
-// func (service *Shortener) ShortenBatch(ctx context.Context, batch []entity.ShortURL, userID string) ([]entity.ShortURL, error) {
-// 	for i, URL := range batch {
-// 		urlID, err := service.generator.GenerateIDFromString(URL.OriginalURL)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		batch[i].ID = urlID
-// 		batch[i].CreatedByID = userID
-// 	}
+// ShortenBatch shortens array of urls.
+// All entries of batch must contain OriginalURL.
+func (service *Shortener) ShortenBatch(ctx context.Context, batch []entity.ShortURL) ([]entity.ShortURL, error) {
+	// for i, URL := range batch {
+	// 	urlID, err := service.generator.GenerateIDFromString(URL.OriginalURL)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	batch[i].ID = urlID
+	// 	batch[i].CreatedByID = userID
+	// }
 
-// 	if err := service.repository.SaveBatch(ctx, batch); err != nil {
-// 		return nil, err
-// 	}
+	for i := range batch {
+		id := service.Random.NewRandomString()
+		// Если указать на прямую, (без конструкции id := service.Random.NewRandomString())
+		// ID один и тот же!
+		batch[i].ID = id // service.Random.NewRandomString()
+		fmt.Println(i, batch[i].ID)
+	}
 
-// 	return batch, nil
-// }
+	if err := service.repository.SaveBatch(ctx, batch); err != nil {
+		return nil, err
+	}
+
+	return batch, nil
+}
 
 // // GenerateNewUserID generates new user id.
 // // It's just a wrapper for random.GenerateNewUserID().

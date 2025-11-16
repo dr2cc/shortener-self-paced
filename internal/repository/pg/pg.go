@@ -11,11 +11,12 @@ import (
 	"os"
 	"time"
 
-	// Импорт для "побочного эффекта" (side effect)
+	"github.com/lib/pq"
+	_ "github.com/lib/pq"
+	// _ {import} это импорт для "побочного эффекта" (side effect)
 	// Значит, что нужны не все (основные) "эффекты" пакета,
 	// а только дополнительные, нужные другим пакетам
-	// (тут пакету "database/sql")
-	_ "github.com/lib/pq"
+	// (тут пакету "database/sql" нужен импорт драйвера)
 )
 
 type PostgresRepo struct {
@@ -67,7 +68,8 @@ func checkTab(log *slog.Logger, repo *PostgresRepo) error {
 	stmt, err := repo.DB.Prepare(`
 	CREATE TABLE IF NOT EXISTS aliases(
         alias VARCHAR NOT NULL UNIQUE,
-        url TEXT NOT NULL);
+        url TEXT NOT NULL,
+		correlation_id VARCHAR);
 	`)
 
 	if err != nil {
@@ -99,6 +101,63 @@ func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ShortURL) er
 
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+// func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []entity.ShortURL) error {
+// 	//_, err := repo.conn.CopyFrom(
+// 	_, err := repo.DB.PrepareContext(ctx, pq.CopyIn(
+// 		"aliases",
+// 		[]string{"original_url", "id", "created_by", "correlation_id", "deleted_at"},
+// 		pgx.CopyFromSlice(len(batch), func(i int) ([]interface{}, error) {
+// 			return []interface{}{batch[i].OriginalURL, batch[i].ID, batch[i].CreatedByID, batch[i].CorrelationID, batch[i].DeletedAt}, nil
+// 		}),
+// 	)
+// 	return err
+// }
+
+// Образец от G
+// func BulkInsertShortURLs(ctx context.Context, db *sql.DB, urls []ShortURL) error {
+func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []entity.ShortURL) error {
+	// 1. Начинаем транзакцию с контекстом
+	// Это гарантирует, что все операции COPY выполняются в рамках одного соединения.
+	tx, err := repo.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback() // Откат транзакции, если произойдет ошибка до Commit()
+
+	// 2. Подготавливаем операцию COPY IN
+	// Указываем имя таблицы и список столбцов в целевой таблице БД.
+	// Таблица называется 'short_urls' с соответствующими столбцами.
+	stmt, err := tx.PrepareContext(ctx, pq.CopyIn("aliases", "alias", "url", "correlation_id"))
+	//stmt, err := repo.DB.PrepareContext(ctx, pq.CopyIn("aliases", "alias", "url", "correlation_id"))
+	if err != nil {
+		return fmt.Errorf("failed to prepare COPY statement: %w", err)
+	}
+	defer stmt.Close()
+
+	// 3. Пакетная вставка данных
+	for _, url := range batch {
+		// Используем ExecContext для передачи данных построчно
+		_, err = stmt.ExecContext(ctx, url.ID, url.OriginalURL, url.CorrelationID)
+		if err != nil {
+			// В случае ошибки ExecContext автоматически вызовет Rollback() для стейтмента.
+			return fmt.Errorf("failed to exec data row: %w", err)
+		}
+	}
+
+	// 4. Завершаем поток данных (закрываем COPY)
+	_, err = stmt.ExecContext(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to close COPY data stream: %w", err)
+	}
+
+	// 5. Коммитим транзакцию
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil

@@ -21,25 +21,25 @@ func NewInMemoryRepository() *InMemoryRepository {
 	}
 }
 
-// // SaveBatch saves multiple urls.
-// // Checks if the urls are unique and then saving them.
-// func (repo *InMemoryRepository) SaveBatch(_ context.Context, batch []entity.ShortURL) error {
-// 	repo.mutex.Lock()
-// 	defer repo.mutex.Unlock()
+// SaveBatch saves multiple urls.
+// Checks if the urls are unique and then saving them.
+func (repo *InMemoryRepository) SaveBatch(_ context.Context, batch []entity.ShortURL) error {
+	repo.mutex.Lock()
+	defer repo.mutex.Unlock()
 
-// 	for _, shortURL := range batch {
-// 		_, ok := repo.storage[shortURL.ID]
-// 		if ok {
-// 			return NewNotUniqueURLError(shortURL, nil)
-// 		}
-// 	}
+	for _, shortURL := range batch {
+		_, ok := repo.storage[shortURL.ID]
+		if ok {
+			return NewNotUniqueURLError(shortURL, nil)
+		}
+	}
 
-// 	for _, shortURL := range batch {
-// 		repo.storage[shortURL.ID] = shortURL
-// 	}
+	for _, shortURL := range batch {
+		repo.storage[shortURL.ID] = shortURL
+	}
 
-// 	return nil
-// }
+	return nil
+}
 
 // Save checks if the url is unique and then saving it to the memory.
 func (repo *InMemoryRepository) Save(_ context.Context, shortURL entity.ShortURL) error {

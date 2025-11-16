@@ -39,8 +39,8 @@ type Repository interface {
 	GetByID(ctx context.Context, id string) (entity.ShortURL, error)
 	Close(_ context.Context) error
 	Check(ctx context.Context) error
+	SaveBatch(ctx context.Context, batch []entity.ShortURL) error
 	// GetUsersUrls(ctx context.Context, userID string) ([]entity.ShortURL, error)
-	// SaveBatch(ctx context.Context, batch []entity.ShortURL) error
 	// DeleteUrls(ctx context.Context, urls []entity.ShortURL) error
 	// GetUsersAndUrlsCount(ctx context.Context) (int, int, error)
 }

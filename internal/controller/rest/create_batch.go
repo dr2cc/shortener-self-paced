@@ -6,6 +6,12 @@ import (
 	"net/http"
 )
 
+// ShorteningBatchResult is shortening result of batch operation.
+type ShorteningBatchResult struct {
+	CorrelationID string `json:"correlation_id"`
+	ShortURL      string `json:"short_url"`
+}
+
 func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 	type request struct {
 		CorrelationID string `json:"correlation_id"`
@@ -39,19 +45,15 @@ func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 
 	// userID := h.getUserID(r)
 
-	shortURLBatches, err := h.service.ShortenBatch(r.Context(), batch, userID)
+	shortURLBatches, err := h.service.ShortenBatch(r.Context(), batch)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// if err = h.addEncryptedUserIDToCookie(&w, userID); err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// }
-
-	res := make([]responses.ShorteningBatchResult, len(shortURLBatches))
+	res := make([]ShorteningBatchResult, len(shortURLBatches))
 	for i, shortURLBatch := range shortURLBatches {
-		res[i] = responses.ShorteningBatchResult{
+		res[i] = ShorteningBatchResult{
 			CorrelationID: shortURLBatch.CorrelationID,
 			ShortURL:      h.service.FormatShortURL(shortURLBatch.ID),
 		}
