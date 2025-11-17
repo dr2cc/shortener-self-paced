@@ -3,8 +3,11 @@ package app
 import (
 	"app/internal/config"
 	handlers "app/internal/controller/rest"
-	storage "app/internal/repository"
 	"app/internal/server"
+	"app/internal/storage"
+	"app/internal/storage/cache"
+	jsonstore "app/internal/storage/jsonrstore"
+	"app/internal/storage/pg"
 	"app/internal/usecase/logger/sl"
 	"app/internal/usecase/random"
 	services "app/internal/usecase/shortener"
@@ -31,7 +34,7 @@ func Run(cfg *config.Config) {
 	log.Debug("logger debug mode enabled")
 
 	// Repository🧹🏦
-	repo := storage.GetRepo(log, cfg)
+	repo := choosingStorage(log, cfg)
 
 	// Use-Case🧹🏦
 	randomKey := random.RandomGenerator{}
@@ -70,6 +73,30 @@ func Run(cfg *config.Config) {
 	// } else {
 	// 	log.Info("the storage was closed")
 	// }
+}
+
+func choosingStorage(log *slog.Logger, cfg *config.Config) storage.Repository {
+	if cfg.DatabaseDSN != "" {
+		// repo, err := NewPgRepository(cfg.DatabaseDSN, cfg.MigrationsPath)
+		// if err != nil {
+		// 	panic(err)
+		// }
+		repo, err := pg.NewPostgresRepo(log, cfg)
+		if err != nil {
+			log.Error("failed to connect pg storage")
+			os.Exit(1)
+		}
+		return repo
+	}
+	if cfg.FilePath != "" {
+		repo, err := jsonstore.NewFileRepository(cfg.FilePath)
+		if err != nil {
+			panic(err)
+		}
+		return repo
+	}
+
+	return cache.NewInMemoryRepository()
 }
 
 func runServer(ctx context.Context, wg *sync.WaitGroup, server server.Server, servName string, log *slog.Logger) {

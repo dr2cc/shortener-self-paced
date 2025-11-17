@@ -1,7 +1,8 @@
-package storage
+package cache
 
 import (
 	"app/internal/entity"
+	"app/internal/storage"
 	"context"
 	"errors"
 	"sync"
@@ -30,7 +31,7 @@ func (repo *InMemoryRepository) SaveBatch(_ context.Context, batch []entity.Shor
 	for _, shortURL := range batch {
 		_, ok := repo.storage[shortURL.ID]
 		if ok {
-			return NewNotUniqueURLError(shortURL, nil)
+			return storage.NewNotUniqueURLError(shortURL, nil)
 		}
 	}
 
@@ -48,7 +49,7 @@ func (repo *InMemoryRepository) Save(_ context.Context, shortURL entity.ShortURL
 	repo.mutex.RUnlock()
 
 	if ok {
-		return NewNotUniqueURLError(shortURL, nil)
+		return storage.NewNotUniqueURLError(shortURL, nil)
 	}
 
 	repo.mutex.Lock()

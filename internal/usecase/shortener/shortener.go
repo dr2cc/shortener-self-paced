@@ -4,7 +4,7 @@ package services
 import (
 	"app/internal/config"
 	"app/internal/entity"
-	storage "app/internal/repository"
+	"app/internal/storage"
 	"app/internal/usecase/random"
 	"context"
 	"errors"

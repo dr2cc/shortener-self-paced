@@ -12,18 +12,12 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	// _ "github.com/lib/pq"
-	// _ {import} это импорт для "побочного эффекта" (side effect)
-	// Значит, что нужны не все (основные) "эффекты" пакета,
-	// а только дополнительные, нужные другим пакетам
-	// (тут пакету "database/sql" нужен импорт драйвера)
 )
 
 type PostgresRepo struct {
 	DB *sql.DB
 }
 
-// Инициализация подключения к PostgreSQL
 func NewPostgresRepo(log *slog.Logger, cfg *config.Config) (*PostgresRepo, error) {
 	// // DSN from environment variables
 	// dsn := os.Getenv("DATABASE_DSN")

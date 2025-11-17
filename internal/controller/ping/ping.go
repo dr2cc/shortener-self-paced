@@ -7,6 +7,10 @@ import (
 	"net/http"
 
 	_ "github.com/lib/pq"
+	// _ {import} это импорт для "побочного эффекта" (side effect)
+	// Значит, что нужны не все (основные) "эффекты" пакета,
+	// а только дополнительные, нужные другим пакетам
+	// (тут пакету "database/sql" нужен импорт драйвера)
 )
 
 func HealthCheck(repo *pg.PostgresRepo, log *slog.Logger) http.HandlerFunc {

@@ -1,7 +1,8 @@
-package storage
+package jsonstore
 
 import (
 	"app/internal/entity"
+	"app/internal/storage"
 	"bufio"
 	"bytes"
 	"context"
@@ -11,8 +12,6 @@ import (
 	"os"
 	"sync"
 )
-
-// Структура такая. Тип FileRepository и 10 его методов
 
 // FileRepository is repository that uses files for storage.
 type FileRepository struct {
@@ -41,7 +40,7 @@ func (repo *FileRepository) SaveBatch(ctx context.Context, batch []entity.ShortU
 	for _, shortURL := range batch {
 		_, err := repo.GetByID(ctx, shortURL.ID)
 		if err == nil {
-			return NewNotUniqueURLError(shortURL, nil)
+			return storage.NewNotUniqueURLError(shortURL, nil)
 		}
 	}
 
@@ -75,7 +74,7 @@ func (repo *FileRepository) SaveBatch(ctx context.Context, batch []entity.ShortU
 func (repo *FileRepository) Save(ctx context.Context, shortURL entity.ShortURL) error {
 	_, err := repo.GetByID(ctx, shortURL.ID)
 	if err == nil {
-		return NewNotUniqueURLError(shortURL, nil)
+		return storage.NewNotUniqueURLError(shortURL, nil)
 	}
 
 	data, err := json.Marshal(shortURL)
@@ -139,56 +138,56 @@ func (repo *FileRepository) Check(_ context.Context) error {
 	return err
 }
 
-// readFileToMap reads the file and returns a map of all the urls in the file.
-func (repo *FileRepository) readFileToMap() (map[string]entity.ShortURL, error) {
-	if _, err := repo.file.Seek(0, io.SeekStart); err != nil {
-		return nil, err
-	}
-	var entry entity.ShortURL
-	existingURLs := make(map[string]entity.ShortURL)
+// // readFileToMap reads the file and returns a map of all the urls in the file.
+// func (repo *FileRepository) readFileToMap() (map[string]entity.ShortURL, error) {
+// 	if _, err := repo.file.Seek(0, io.SeekStart); err != nil {
+// 		return nil, err
+// 	}
+// 	var entry entity.ShortURL
+// 	existingURLs := make(map[string]entity.ShortURL)
 
-	scanner := bufio.NewScanner(repo.file)
+// 	scanner := bufio.NewScanner(repo.file)
 
-	for scanner.Scan() {
-		line := scanner.Bytes()
-		if err := json.NewDecoder(bytes.NewReader(line)).Decode(&entry); err != nil {
-			return nil, err
-		}
-		existingURLs[entry.ID] = entry
-	}
-	return existingURLs, nil
-}
+// 	for scanner.Scan() {
+// 		line := scanner.Bytes()
+// 		if err := json.NewDecoder(bytes.NewReader(line)).Decode(&entry); err != nil {
+// 			return nil, err
+// 		}
+// 		existingURLs[entry.ID] = entry
+// 	}
+// 	return existingURLs, nil
+// }
 
-// writeMapToFile writes the map to the file.
-func (repo *FileRepository) writeMapToFile(existingURLs map[string]entity.ShortURL) error {
-	if err := repo.file.Truncate(0); err != nil {
-		return err
-	}
-	if _, err := repo.file.Seek(0, 0); err != nil {
-		return err
-	}
+// // writeMapToFile writes the map to the file.
+// func (repo *FileRepository) writeMapToFile(existingURLs map[string]entity.ShortURL) error {
+// 	if err := repo.file.Truncate(0); err != nil {
+// 		return err
+// 	}
+// 	if _, err := repo.file.Seek(0, 0); err != nil {
+// 		return err
+// 	}
 
-	for _, url := range existingURLs {
+// 	for _, url := range existingURLs {
 
-		data, err := json.Marshal(url)
-		if err != nil {
-			return err
-		}
+// 		data, err := json.Marshal(url)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		if _, errWrite := repo.writer.Write(data); errWrite != nil {
-			return errWrite
-		}
+// 		if _, errWrite := repo.writer.Write(data); errWrite != nil {
+// 			return errWrite
+// 		}
 
-		if errWriteByte := repo.writer.WriteByte('\n'); errWriteByte != nil {
-			return errWriteByte
-		}
+// 		if errWriteByte := repo.writer.WriteByte('\n'); errWriteByte != nil {
+// 			return errWriteByte
+// 		}
 
-	}
-	if err := repo.writer.Flush(); err != nil {
-		return err
-	}
-	return nil
-}
+// 	}
+// 	if err := repo.writer.Flush(); err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
 // // GetUsersUrls reads the file line by line and returning all the urls
 // // that were created by user with id userID.
