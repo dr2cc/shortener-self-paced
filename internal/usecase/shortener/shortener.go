@@ -129,6 +129,7 @@ func (service *Shortener) FormatShortURL(urlID string) string {
 // ShortenBatch shortens array of urls.
 // All entries of batch must contain OriginalURL.
 func (service *Shortener) ShortenBatch(ctx context.Context, batch []entity.ShortURL) ([]entity.ShortURL, error) {
+	const op = "usecase.shortener.ShortenBatch"
 	// for i, URL := range batch {
 	// 	urlID, err := service.generator.GenerateIDFromString(URL.OriginalURL)
 	// 	if err != nil {
@@ -138,12 +139,15 @@ func (service *Shortener) ShortenBatch(ctx context.Context, batch []entity.Short
 	// 	batch[i].CreatedByID = userID
 	// }
 
+	// TODO❗: видимо тут вопросы с постоянно одинаковым ID
 	for i := range batch {
+		fmt.Println(op, i)
 		id := service.Random.NewRandomString()
+		fmt.Println(op, id)
 		// Если указать на прямую, (без конструкции id := service.Random.NewRandomString())
 		// ID один и тот же!
 		batch[i].ID = id // service.Random.NewRandomString()
-		fmt.Println(i, batch[i].ID)
+		fmt.Println(op, i, batch[i].ID)
 	}
 
 	if err := service.repository.SaveBatch(ctx, batch); err != nil {
