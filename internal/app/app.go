@@ -2,7 +2,7 @@ package app
 
 import (
 	"app/internal/config"
-	handlers "app/internal/controller/rest"
+	"app/internal/handlers"
 	"app/internal/server"
 	"app/internal/storage"
 	"app/internal/storage/cache"

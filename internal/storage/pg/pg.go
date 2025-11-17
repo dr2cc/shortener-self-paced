@@ -158,6 +158,7 @@ func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []entity.ShortURL
 }
 
 func (repo *PostgresRepo) Check(ctx context.Context) error {
+	// и вся проверка "здоровья"!
 	return repo.DB.PingContext(ctx)
 }
 
