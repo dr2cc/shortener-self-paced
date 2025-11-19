@@ -9,7 +9,6 @@ import (
 	jsonstore "app/internal/storage/jsonrstore"
 	"app/internal/storage/pg"
 	"app/internal/usecase/logger/sl"
-	"app/internal/usecase/random"
 	services "app/internal/usecase/shortener"
 	"context"
 	"fmt"
@@ -29,17 +28,19 @@ const (
 
 // Run creates objects (via constructors!)
 func Run(cfg *config.Config) {
+	// Создаем объект логгера
 	log := setupLogger(cfg.Env)
 	log.Info("init server", slog.String("address", cfg.ServerAddress))
 	log.Debug("logger debug mode enabled")
 
 	// Repository🧹🏦
+	// Создаем объект хранилища, в соответствии с настройками
 	repo := choosingStorage(log, cfg)
 
 	// Use-Case🧹🏦
-	randomKey := random.RandomGenerator{}
-	// Создаю "сущность" этого сервиса
-	service := services.New(randomKey, repo, cfg)
+	// randomKey := random.RandomGenerator{}
+	// Создаем "сущность" этого сервиса
+	service := services.New(repo, cfg) // (randomKey, repo, cfg)
 
 	// HTTP Server🧹🏦
 	router := handlers.NewRouter(service, cfg, log)

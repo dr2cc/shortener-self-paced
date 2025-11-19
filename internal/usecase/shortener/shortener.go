@@ -12,24 +12,25 @@ import (
 	"time"
 )
 
-type ShortenerInterface interface {
-	// r.Post("/", h.Shorten)
-	ShortText(ctx context.Context, url string, userID string) (entity.ShortURL, error)
-	// r.Get("/{id}", h.Expand)
-	Redirect(ctx context.Context, id string) (entity.ShortURL, error)
-	// FormatShortURL(urlID string) string
-	// GetUrlsCreatedBy(ctx context.Context, userID string) ([]entity.ShortURL, error)
-	// HealthCheck(ctx context.Context) error
-	// ShortenBatch(ctx context.Context, batch []entity.ShortURL, userID string) ([]entity.ShortURL, error)
-	// GenerateNewUserID() string
-	// DeleteUrls(ctx context.Context, ids []string, userID string)
-	// GetStats(ctx context.Context) (entity.Stats, error)
-}
+// // TODO❗ Не до конца ясно для чего тут интерфейс?
+// type ShortenerInterface interface {
+// 	// r.Post("/", h.Shorten)
+// 	ShortText(ctx context.Context, url string, userID string) (entity.ShortURL, error)
+// 	// r.Get("/{id}", h.Expand)
+// 	Redirect(ctx context.Context, id string) (entity.ShortURL, error)
+// 	// FormatShortURL(urlID string) string
+// 	// GetUrlsCreatedBy(ctx context.Context, userID string) ([]entity.ShortURL, error)
+// 	// HealthCheck(ctx context.Context) error
+// 	// ShortenBatch(ctx context.Context, batch []entity.ShortURL, userID string) ([]entity.ShortURL, error)
+// 	// GenerateNewUserID() string
+// 	// DeleteUrls(ctx context.Context, ids []string, userID string)
+// 	// GetStats(ctx context.Context) (entity.Stats, error)
+// }
 
 // Shortener is the main service of the application
 // Shortener — основной сервис приложения
 type Shortener struct {
-	Random     random.RandomGenerator
+	// Random     random.RandomGenerator
 	repository storage.Repository
 	//generator  generator.URLGenerator
 	config *config.Config
@@ -37,13 +38,13 @@ type Shortener struct {
 
 // New creates new service.
 func New(
-	random random.RandomGenerator,
+	//random random.RandomGenerator,
 	repository storage.Repository,
 	config *config.Config,
 	//generator generator.URLGenerator,
 ) *Shortener {
 	return &Shortener{
-		Random:     random,
+		//Random:     random,
 		repository: repository,
 		config:     config,
 		//generator:  generator,
@@ -81,7 +82,7 @@ func (service *Shortener) Shorten(ctx context.Context, url string) (entity.Short
 
 	shortURL := entity.ShortURL{
 		OriginalURL: url,
-		ID:          service.Random.NewRandomString(),
+		ID:          random.NewRandomString(),
 		//ID:          urlID,
 		// CreatedByID: userID,
 	}
@@ -142,7 +143,7 @@ func (service *Shortener) ShortenBatch(ctx context.Context, batch []entity.Short
 	// TODO❗: видимо тут вопросы с постоянно одинаковым ID
 	for i := range batch {
 		fmt.Println(op, i)
-		id := service.Random.NewRandomString()
+		id := random.NewRandomString()
 		fmt.Println(op, id)
 		// Если указать на прямую, (без конструкции id := service.Random.NewRandomString())
 		// ID один и тот же!
