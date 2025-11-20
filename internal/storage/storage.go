@@ -11,7 +11,7 @@ import (
 // DataStorageMethods
 type Repository interface {
 	Save(ctx context.Context, shortURL entity.ShortURL) error
-	GetByID(ctx context.Context, id string) (entity.ShortURL, error)
+	FindByID(ctx context.Context, id string) (entity.ShortURL, error)
 	Close(_ context.Context) error
 	Check(ctx context.Context) error
 	SaveBatch(ctx context.Context, batch []entity.ShortURL) error

@@ -100,18 +100,6 @@ func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ShortURL) er
 	return nil
 }
 
-// func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []entity.ShortURL) error {
-// 	//_, err := repo.conn.CopyFrom(
-// 	_, err := repo.DB.PrepareContext(ctx, pq.CopyIn(
-// 		"aliases",
-// 		[]string{"original_url", "id", "created_by", "correlation_id", "deleted_at"},
-// 		pgx.CopyFromSlice(len(batch), func(i int) ([]interface{}, error) {
-// 			return []interface{}{batch[i].OriginalURL, batch[i].ID, batch[i].CreatedByID, batch[i].CorrelationID, batch[i].DeletedAt}, nil
-// 		}),
-// 	)
-// 	return err
-// }
-
 // Образец от G
 // func BulkInsertShortURLs(ctx context.Context, db *sql.DB, urls []ShortURL) error {
 func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []entity.ShortURL) error {
@@ -162,7 +150,7 @@ func (repo *PostgresRepo) Check(ctx context.Context) error {
 	return repo.DB.PingContext(ctx)
 }
 
-func (repo *PostgresRepo) GetByID(ctx context.Context, id string) (entity.ShortURL, error) {
+func (repo *PostgresRepo) FindByID(ctx context.Context, id string) (entity.ShortURL, error) {
 	var ent entity.ShortURL
 	err := repo.DB.QueryRowContext(
 		ctx,

@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-// Response with shortened url
+// "result" - так в ответе, по заданию  на инкремент 7, называется ключ в JSON запросе
 type ResponseAPI struct {
 	Result string `json:"result"`
 }
@@ -30,7 +30,7 @@ func apiPublicationResult(w http.ResponseWriter, h *Handler, shortURL entity.Sho
 	}
 }
 
-// Назову json post ручку ShortenAPI - обычно при помощи json и создают интерфейс
+// Назову json post ручку ShortenAPI - обычно при помощи json создают интерфейс
 func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	var v entity.ShortURL
 

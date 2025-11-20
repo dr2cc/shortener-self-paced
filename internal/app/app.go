@@ -9,6 +9,7 @@ import (
 	jsonstore "app/internal/storage/jsonrstore"
 	"app/internal/storage/pg"
 	"app/internal/usecase/logger/sl"
+	"app/internal/usecase/random"
 	services "app/internal/usecase/shortener"
 	"context"
 	"fmt"
@@ -38,9 +39,12 @@ func Run(cfg *config.Config) {
 	repo := choosingStorage(log, cfg)
 
 	// Use-Case🧹🏦
-	// randomKey := random.RandomGenerator{}
+	randomKey := random.RandomStringGenerator{}
 	// Создаем "сущность" этого сервиса
-	service := services.New(repo, cfg) // (randomKey, repo, cfg)
+	// TODO👀 - спросить наставника, в чем смысл такой сущности (еще глянуть в обеих чистых архитектурах)
+	// По моему мнению- чтобы в любом месте проекта были доступны основные методы именно из этй сущности,
+	// а не напрямую (разделение слоев?)
+	service := services.New(randomKey, repo, cfg)
 
 	// HTTP Server🧹🏦
 	router := handlers.NewRouter(service, cfg, log)

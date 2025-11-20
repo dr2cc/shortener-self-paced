@@ -38,7 +38,7 @@ func NewFileRepository(filePath string) (*FileRepository, error) {
 
 func (repo *FileRepository) SaveBatch(ctx context.Context, batch []entity.ShortURL) error {
 	for _, shortURL := range batch {
-		_, err := repo.GetByID(ctx, shortURL.ID)
+		_, err := repo.FindByID(ctx, shortURL.ID)
 		if err == nil {
 			return storage.NewNotUniqueURLError(shortURL, nil)
 		}
@@ -72,7 +72,7 @@ func (repo *FileRepository) SaveBatch(ctx context.Context, batch []entity.ShortU
 
 // Save checks if the url is unique and then saving it to the file.
 func (repo *FileRepository) Save(ctx context.Context, shortURL entity.ShortURL) error {
-	_, err := repo.GetByID(ctx, shortURL.ID)
+	_, err := repo.FindByID(ctx, shortURL.ID)
 	if err == nil {
 		return storage.NewNotUniqueURLError(shortURL, nil)
 	}
@@ -100,9 +100,9 @@ func (repo *FileRepository) Save(ctx context.Context, shortURL entity.ShortURL) 
 	return nil
 }
 
-// GetByID gets url by id.
-// Reads the file line by line and returns url that matches given id.
-func (repo *FileRepository) GetByID(_ context.Context, id string) (entity.ShortURL, error) {
+// FindByID находит URL по идентификатору.
+// Считывает файл строка за строкой и возвращает URL, соответствующий указанному идентификатору.
+func (repo *FileRepository) FindByID(_ context.Context, id string) (entity.ShortURL, error) {
 	repo.mutex.RLock()
 	defer repo.mutex.RUnlock()
 

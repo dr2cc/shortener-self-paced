@@ -16,8 +16,8 @@ import (
 )
 
 type Handler struct {
-	Mux     *chi.Mux            // router that we'll be using to handle our requests
-	service *services.Shortener // service that will contain main business logic
+	Mux     *chi.Mux            // маршрутизатор, который мы будем использовать для обработки запросов
+	service *services.Shortener // сервис, который содержит бизнес-логику, хранилище, конфигурацию
 	// crypto  crypto.Cryptographer // interface that we'll use to encrypt and decrypt values
 }
 

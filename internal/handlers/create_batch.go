@@ -3,6 +3,7 @@ package handlers
 import (
 	"app/internal/entity"
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -57,6 +58,7 @@ func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 			CorrelationID: shortURLBatch.CorrelationID,
 			ShortURL:      h.service.FormatShortURL(shortURLBatch.ID),
 		}
+		fmt.Println("FormatShortURL - ", h.service.FormatShortURL(shortURLBatch.ID))
 	}
 
 	out, err := json.Marshal(res)

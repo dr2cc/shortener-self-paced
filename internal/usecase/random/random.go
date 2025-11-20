@@ -8,10 +8,10 @@ import (
 // TODO: move to config if needed
 const keyLength = 6
 
-// type RandomGenerator struct{}
+type RandomStringGenerator struct{}
 
 // NewRandomString generates random string with given size.
-func NewRandomString() string {
+func (r RandomStringGenerator) NewRandomString() string {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +

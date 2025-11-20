@@ -1,4 +1,4 @@
-// Package services contains main business logic of application.
+// Пакет services содержит основную бизнес-логику приложения.
 package services
 
 import (
@@ -14,9 +14,9 @@ import (
 
 // // TODO❗ Не до конца ясно для чего тут интерфейс?
 // type ShortenerInterface interface {
-// 	// r.Post("/", h.Shorten)
+// // router.Post("/", h.ShortenText)
 // 	ShortText(ctx context.Context, url string, userID string) (entity.ShortURL, error)
-// 	// r.Get("/{id}", h.Expand)
+// // router.Get("/{id}", h.Redirect)
 // 	Redirect(ctx context.Context, id string) (entity.ShortURL, error)
 // 	// FormatShortURL(urlID string) string
 // 	// GetUrlsCreatedBy(ctx context.Context, userID string) ([]entity.ShortURL, error)
@@ -27,31 +27,107 @@ import (
 // 	// GetStats(ctx context.Context) (entity.Stats, error)
 // }
 
-// Shortener is the main service of the application
-// Shortener — основной сервис приложения
+// Shortener — служба, предоставляющая бизнес-логику, хранилище, конфигурацию
 type Shortener struct {
-	// Random     random.RandomGenerator
+	Random     random.RandomStringGenerator
 	repository storage.Repository
+	config     *config.Config
 	//generator  generator.URLGenerator
-	config *config.Config
 }
 
-// New creates new service.
-func New(
-	//random random.RandomGenerator,
-	repository storage.Repository,
-	config *config.Config,
-	//generator generator.URLGenerator,
-) *Shortener {
+// New создает службу сокращения URL
+func New(rand random.RandomStringGenerator, repo storage.Repository, conf *config.Config) *Shortener {
 	return &Shortener{
-		//Random:     random,
-		repository: repository,
-		config:     config,
+		Random:     rand,
+		repository: repo,
+		config:     conf,
 		//generator:  generator,
 	}
 }
 
-// shorteningError is error wrapper of any error occurred in service.
+// ShortenBatch shortens array of urls.
+// All entries of batch must contain OriginalURL.
+func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ShortURL) ([]entity.ShortURL, error) {
+	const op = "usecase.shortener.ShortenBatch"
+	// for i, URL := range batch {
+	// 	urlID, err := sh.generator.GenerateIDFromString(URL.OriginalURL)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	batch[i].ID = urlID
+	// 	batch[i].CreatedByID = userID
+	// }
+
+	// TODO❗: видимо тут вопросы с постоянно одинаковым ID
+	for i := range batch {
+		fmt.Println(op, i)
+		id := sh.Random.NewRandomString()
+		fmt.Println(op, id)
+		// Если указать на прямую, (без конструкции id := service.Random.NewRandomString())
+		// ID один и тот же!
+		batch[i].ID = id // service.Random.NewRandomString()
+		fmt.Println(op, i, batch[i].ID)
+	}
+
+	if err := sh.repository.SaveBatch(ctx, batch); err != nil {
+		return nil, err
+	}
+
+	return batch, nil
+}
+
+// Shorten сокращает полный URL и возвращает заполненную структуру ShortURL
+func (sh *Shortener) Shorten(ctx context.Context, url string) (entity.ShortURL, error) {
+	// urlID, err := sh.generator.GenerateIDFromString(url)
+	// if err != nil {
+	// 	return entity.ShortURL{}, err
+	// }
+
+	shortURL := entity.ShortURL{
+		OriginalURL: url,
+		ID:          sh.Random.NewRandomString(),
+		//ID:          urlID,
+		// CreatedByID: userID,
+	}
+
+	err := sh.repository.Save(ctx, shortURL)
+	var notUniqueErr *storage.NotUniqueURLError
+	if errors.As(err, &notUniqueErr) {
+		return shortURL, NewShorteningError(shortURL, err)
+	}
+	if err != nil {
+		return entity.ShortURL{}, err
+	}
+
+	return shortURL, nil
+}
+
+// Функция FindURL находит в хранилище полный URL-адрес по указанному идентификатору.
+// Возвращает заполненную структуру entity.ShortURL
+func (sh *Shortener) FindURL(ctx context.Context, id string) (entity.ShortURL, error) {
+	origURL, err := sh.repository.FindByID(ctx, id)
+	if err != nil {
+		return entity.ShortURL{}, err //Shortener
+	}
+	return origURL, nil
+}
+
+// HealthCheck проверяет корректность работы выбранного хранилища
+func (sh *Shortener) HealthCheck(ctx context.Context) error {
+	timeout := 5 * time.Second //nolint:gomnd
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	return sh.repository.Check(ctx)
+}
+
+// FormatShortURL форматирует полученный идентификатор URL
+// в результирующую строку, возвращаемую запросами POST
+func (sh *Shortener) FormatShortURL(urlID string) string {
+	return fmt.Sprintf("%s/%s", sh.config.BaseURL, urlID)
+}
+
+// shorteningError — это обертка (wrapper) любой ошибки,
+// возникшей в процессе работы службы
 type shorteningError struct {
 	Err      error
 	ShortURL entity.ShortURL
@@ -65,7 +141,7 @@ func (err *shorteningError) Unwrap() error {
 	return err.Err
 }
 
-// NewShorteningError wraps error err with additional info about url.
+// NewShorteningError добавляет (wraps) к ошибке поле err с дополнительной информацией об URL
 func NewShorteningError(shortURL entity.ShortURL, err error) error {
 	return &shorteningError{
 		Err:      err,
@@ -73,90 +149,11 @@ func NewShorteningError(shortURL entity.ShortURL, err error) error {
 	}
 }
 
-// Shorten shortens full url and returns filled struct ShortURL.
-func (service *Shortener) Shorten(ctx context.Context, url string) (entity.ShortURL, error) {
-	// urlID, err := service.generator.GenerateIDFromString(url)
-	// if err != nil {
-	// 	return entity.ShortURL{}, err
-	// }
-
-	shortURL := entity.ShortURL{
-		OriginalURL: url,
-		ID:          random.NewRandomString(),
-		//ID:          urlID,
-		// CreatedByID: userID,
-	}
-
-	err := service.repository.Save(ctx, shortURL)
-	var notUniqueErr *storage.NotUniqueURLError
-	if errors.As(err, &notUniqueErr) {
-		return shortURL, NewShorteningError(shortURL, err)
-	}
-	if err != nil {
-		return entity.ShortURL{}, err
-	}
-
-	return shortURL, nil
-}
-
-// Expand expands full url from given id. Returns filled ShortURL struct.
-func (service *Shortener) Expand(ctx context.Context, id string) (entity.ShortURL, error) {
-	origURL, err := service.repository.GetByID(ctx, id)
-	if err != nil {
-		return entity.ShortURL{}, err
-	}
-	return origURL, nil
-}
-
-// HealthCheck checks if service is working correctly
-func (service *Shortener) HealthCheck(ctx context.Context) error {
-	timeout := 5 * time.Second //nolint:gomnd
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-	return service.repository.Check(ctx)
-}
-
-// FormatShortURL formats url id to full url.
-func (service *Shortener) FormatShortURL(urlID string) string {
-	return fmt.Sprintf("%s/%s", service.config.BaseURL, urlID)
-}
-
 // // GetUrlsCreatedBy returns array of all urs that was shortened by given userID.
 // // It's just a wrapper for repository.GetUsersUrls.
 // func (service *Shortener) GetUrlsCreatedBy(ctx context.Context, userID string) ([]entity.ShortURL, error) {
 // 	return service.repository.GetUsersUrls(ctx, userID)
 // }
-
-// ShortenBatch shortens array of urls.
-// All entries of batch must contain OriginalURL.
-func (service *Shortener) ShortenBatch(ctx context.Context, batch []entity.ShortURL) ([]entity.ShortURL, error) {
-	const op = "usecase.shortener.ShortenBatch"
-	// for i, URL := range batch {
-	// 	urlID, err := service.generator.GenerateIDFromString(URL.OriginalURL)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	batch[i].ID = urlID
-	// 	batch[i].CreatedByID = userID
-	// }
-
-	// TODO❗: видимо тут вопросы с постоянно одинаковым ID
-	for i := range batch {
-		fmt.Println(op, i)
-		id := random.NewRandomString()
-		fmt.Println(op, id)
-		// Если указать на прямую, (без конструкции id := service.Random.NewRandomString())
-		// ID один и тот же!
-		batch[i].ID = id // service.Random.NewRandomString()
-		fmt.Println(op, i, batch[i].ID)
-	}
-
-	if err := service.repository.SaveBatch(ctx, batch); err != nil {
-		return nil, err
-	}
-
-	return batch, nil
-}
 
 // // GenerateNewUserID generates new user id.
 // // It's just a wrapper for random.GenerateNewUserID().

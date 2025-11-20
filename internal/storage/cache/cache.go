@@ -60,7 +60,7 @@ func (repo *InMemoryRepository) Save(_ context.Context, shortURL entity.ShortURL
 }
 
 // GetByID gets the url by id.
-func (repo *InMemoryRepository) GetByID(_ context.Context, id string) (entity.ShortURL, error) {
+func (repo *InMemoryRepository) FindByID(_ context.Context, id string) (entity.ShortURL, error) {
 	repo.mutex.RLock()
 	url, ok := repo.storage[id]
 	repo.mutex.RUnlock()
