@@ -13,10 +13,12 @@ type ResponseAPI struct {
 }
 
 func apiPublicationResult(w http.ResponseWriter, h *Handler, shortURL entity.ShortURL, status int) {
-	res := ResponseAPI{Result: h.service.FormatShortURL(shortURL.ID)}
+	res := ResponseAPI{
+		Result: h.service.FormatShortURL(shortURL.ID),
+	}
 
+	// marshalling - сортировка (сериаоизация) в json
 	out, err := json.Marshal(res)
-	// out, err := json.Marshal(h.service.FormatShortURL(shortURL.ID))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -40,11 +42,15 @@ func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// десериализуем данные json
 	if errDecode := json.NewDecoder(reader).Decode(&v); errDecode != nil {
 		http.Error(w, "cannot decode json", http.StatusBadRequest)
 		return
 	}
 
+	// Так как анмарщаллинг происходит в entity.ExpandedURL (ex. ShortURL),
+	// то структурный тег поля OriginalURL в entity.ExpandedURL ("url")
+	// должен совпадать с ключем "url" запроса, иначе будет "url required"
 	if v.OriginalURL == "" {
 		http.Error(w, "url required", http.StatusBadRequest)
 		return
