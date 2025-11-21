@@ -48,7 +48,8 @@ func New(rand random.RandomStringGenerator, repo storage.Repository, conf *confi
 // ShortenBatch shortens array of urls.
 // All entries of batch must contain OriginalURL.
 func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ShortURL) ([]entity.ShortURL, error) {
-	const op = "usecase.shortener.ShortenBatch"
+	//const op = "usecase.shortener.ShortenBatch"
+
 	// for i, URL := range batch {
 	// 	urlID, err := sh.generator.GenerateIDFromString(URL.OriginalURL)
 	// 	if err != nil {
@@ -59,14 +60,23 @@ func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ShortURL) 
 	// }
 
 	// TODO❗: видимо тут вопросы с постоянно одинаковым ID
-	for i := range batch {
-		fmt.Println(op, i)
-		id := sh.Random.NewRandomString()
-		fmt.Println(op, id)
-		// Если указать на прямую, (без конструкции id := service.Random.NewRandomString())
-		// ID один и тот же!
-		batch[i].ID = id // service.Random.NewRandomString()
-		fmt.Println(op, i, batch[i].ID)
+	// for i := range batch {
+	// 	fmt.Println(op, i)
+	// 	id := sh.Random.NewRandomString()
+	// 	fmt.Println(op, id)
+	// 	// Если указать на прямую, (без конструкции id := service.Random.NewRandomString())
+	// 	// ID один и тот же!
+	// 	batch[i].ID = id // service.Random.NewRandomString()
+	// 	fmt.Println(op, i, batch[i].ID)
+	// }
+
+	for i, URL := range batch {
+		urlID, err := random.GenerateIDFromString(URL.OriginalURL)
+		if err != nil {
+			return nil, err
+		}
+		batch[i].ID = urlID
+		//batch[i].CreatedByID = userID
 	}
 
 	if err := sh.repository.SaveBatch(ctx, batch); err != nil {

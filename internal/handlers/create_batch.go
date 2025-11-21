@@ -14,6 +14,8 @@ type ShorteningBatchResult struct {
 }
 
 func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
+	// "correlation_id" и "original_url" - так в запросе, по заданию  на инкремент 12,
+	// называются ключи в строках JSON запроса
 	type request struct {
 		CorrelationID string `json:"correlation_id"`
 		OriginalURL   string `json:"original_url"`
@@ -46,6 +48,7 @@ func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 
 	// userID := h.getUserID(r)
 
+	// Вход в сократитель
 	shortURLBatches, err := h.service.ShortenBatch(r.Context(), batch)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
