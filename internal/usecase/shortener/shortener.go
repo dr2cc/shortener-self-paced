@@ -28,15 +28,18 @@ import (
 // }
 
 // Shortener — служба, предоставляющая бизнес-логику, хранилище, конфигурацию
+// Все поля (кроме конфигурации)
+// у этой службы (по сути main service) - интерфейсы.
+// Предотвращение «утечек абстракции» https://habr.com/ru/articles/881918/
 type Shortener struct {
-	Random     random.RandomStringGenerator
+	Random     random.Stringer
 	repository storage.Repository
 	config     *config.Config
 	//generator  generator.URLGenerator
 }
 
 // New создает службу сокращения URL
-func New(rand random.RandomStringGenerator, repo storage.Repository, conf *config.Config) *Shortener {
+func New(rand random.Stringer, repo storage.Repository, conf *config.Config) *Shortener {
 	return &Shortener{
 		Random:     rand,
 		repository: repo,
@@ -71,7 +74,7 @@ func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ShortURL) 
 	// }
 
 	for i, URL := range batch {
-		urlID, err := random.GenerateIDfromString(URL.OriginalURL)
+		urlID, err := sh.Random.GenerateIDfromString(URL.OriginalURL)
 		if err != nil {
 			return nil, err
 		}
@@ -88,19 +91,18 @@ func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ShortURL) 
 
 // Shorten сокращает полный URL и возвращает заполненную структуру ShortURL
 func (sh *Shortener) Shorten(ctx context.Context, url string) (entity.ShortURL, error) {
-	// urlID, err := sh.generator.GenerateIDFromString(url)
-	// if err != nil {
-	// 	return entity.ShortURL{}, err
-	// }
+	urlID, err := sh.Random.GenerateIDfromString(url)
+	if err != nil {
+		return entity.ShortURL{}, err
+	}
 
 	shortURL := entity.ShortURL{
 		OriginalURL: url,
-		ID:          sh.Random.NewRandomString(),
-		//ID:          urlID,
+		ID:          urlID,
 		// CreatedByID: userID,
 	}
 
-	err := sh.repository.Save(ctx, shortURL)
+	err = sh.repository.Save(ctx, shortURL)
 	var notUniqueErr *storage.NotUniqueURLError
 	if errors.As(err, &notUniqueErr) {
 		return shortURL, NewShorteningError(shortURL, err)

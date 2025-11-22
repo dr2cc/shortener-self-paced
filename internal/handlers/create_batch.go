@@ -3,7 +3,6 @@ package handlers
 import (
 	"app/internal/entity"
 	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
@@ -40,6 +39,7 @@ func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "url required", http.StatusBadRequest)
 			return
 		}
+		// Здесь в batch записываются все данные полученные из запроса клиента
 		batch[i] = entity.ShortURL{
 			OriginalURL:   shortURLInput.OriginalURL,
 			CorrelationID: shortURLInput.CorrelationID,
@@ -55,13 +55,13 @@ func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Заполняем структуру для ответа
 	res := make([]ShorteningBatchResult, len(shortURLBatches))
 	for i, shortURLBatch := range shortURLBatches {
 		res[i] = ShorteningBatchResult{
 			CorrelationID: shortURLBatch.CorrelationID,
 			ShortURL:      h.service.FormatShortURL(shortURLBatch.ID),
 		}
-		fmt.Println("FormatShortURL - ", h.service.FormatShortURL(shortURLBatch.ID))
 	}
 
 	out, err := json.Marshal(res)
