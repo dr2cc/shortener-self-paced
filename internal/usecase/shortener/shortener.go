@@ -71,7 +71,7 @@ func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ShortURL) 
 	// }
 
 	for i, URL := range batch {
-		urlID, err := random.GenerateIDFromString(URL.OriginalURL)
+		urlID, err := random.GenerateIDfromString(URL.OriginalURL)
 		if err != nil {
 			return nil, err
 		}
