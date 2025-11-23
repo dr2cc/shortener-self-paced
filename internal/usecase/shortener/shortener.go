@@ -12,19 +12,14 @@ import (
 	"time"
 )
 
-// // TODO❗ Не до конца ясно для чего тут интерфейс?
+// // TODO❗ ShortenerInterface со всем поведением
+// // службы Shortener, будет необходим для сервера gRPC
 // type ShortenerInterface interface {
-// // router.Post("/", h.ShortenText)
-// 	ShortText(ctx context.Context, url string, userID string) (entity.ShortURL, error)
-// // router.Get("/{id}", h.Redirect)
-// 	Redirect(ctx context.Context, id string) (entity.ShortURL, error)
-// 	// FormatShortURL(urlID string) string
-// 	// GetUrlsCreatedBy(ctx context.Context, userID string) ([]entity.ShortURL, error)
-// 	// HealthCheck(ctx context.Context) error
-// 	// ShortenBatch(ctx context.Context, batch []entity.ShortURL, userID string) ([]entity.ShortURL, error)
-// 	// GenerateNewUserID() string
-// 	// DeleteUrls(ctx context.Context, ids []string, userID string)
-// 	// GetStats(ctx context.Context) (entity.Stats, error)
+// ShortenBatch(ctx context.Context, batch []entity.ShortURL, userID string) ([]entity.ShortURL, error)
+// Shorten(ctx context.Context, url string, userID string) (entity.ShortURL, error)
+// FindURL(ctx context.Context, id string) (entity.ShortURL, error)
+// HealthCheck(ctx context.Context) error
+// FormatShortURL(urlID string) string
 // }
 
 // Shortener — служба, предоставляющая бизнес-логику, хранилище, конфигурацию
@@ -48,31 +43,9 @@ func New(rand random.Stringer, repo storage.Repository, conf *config.Config) *Sh
 	}
 }
 
-// ShortenBatch shortens array of urls.
-// All entries of batch must contain OriginalURL.
+// ShortenBatch сокращает массив значений []entity.ShortURL
+// Все записи пакета должны содержать OriginalURL.
 func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ShortURL) ([]entity.ShortURL, error) {
-	//const op = "usecase.shortener.ShortenBatch"
-
-	// for i, URL := range batch {
-	// 	urlID, err := sh.generator.GenerateIDFromString(URL.OriginalURL)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	batch[i].ID = urlID
-	// 	batch[i].CreatedByID = userID
-	// }
-
-	// TODO❗: видимо тут вопросы с постоянно одинаковым ID
-	// for i := range batch {
-	// 	fmt.Println(op, i)
-	// 	id := sh.Random.NewRandomString()
-	// 	fmt.Println(op, id)
-	// 	// Если указать на прямую, (без конструкции id := service.Random.NewRandomString())
-	// 	// ID один и тот же!
-	// 	batch[i].ID = id // service.Random.NewRandomString()
-	// 	fmt.Println(op, i, batch[i].ID)
-	// }
-
 	for i, URL := range batch {
 		urlID, err := sh.Random.GenerateIDfromString(URL.OriginalURL)
 		if err != nil {

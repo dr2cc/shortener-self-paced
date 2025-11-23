@@ -18,12 +18,14 @@ import (
 type Handler struct {
 	Mux     *chi.Mux            // маршрутизатор, который мы будем использовать для обработки запросов
 	service *services.Shortener // сервис, который содержит бизнес-логику, хранилище, конфигурацию
-	// crypto  crypto.Cryptographer // interface that we'll use to encrypt and decrypt values
+	// crypto
 }
 
-// NewHandler creates a new instance of the Handler struct, initializes the chi mux, and sets the service and crypto fields
+// NewHandler создает новый экземпляр структуры Handler, инициализирует chi мультиплексор,
+// и выбирает службу
+// и crypto
 func NewHandler(service *services.Shortener, config *config.Config) *Handler {
-	// cryptographer := crypto.GCMAESCryptographer{Key: config.EncryptionKey, Random: service.Random}
+	// cryptographer := {}
 	return &Handler{
 		Mux:     chi.NewMux(),
 		service: service,
@@ -31,7 +33,7 @@ func NewHandler(service *services.Shortener, config *config.Config) *Handler {
 	}
 }
 
-// // NewRouter creates a new router, adds some middleware, and then adds some routes
+// NewRouter создает новый маршрутизатор, добавляет middleware, а затем добавляет маршруты
 func NewRouter(service *services.Shortener, cfg *config.Config, log *slog.Logger) chi.Router {
 	router := chi.NewRouter()
 
@@ -43,6 +45,8 @@ func NewRouter(service *services.Shortener, cfg *config.Config, log *slog.Logger
 
 	h := NewHandler(service, cfg)
 
+	// Получается service нужен только для работы ручек- передает в них
+	// рандомайзер (бизнес-логику), хранилище и конфигурацию
 	router.Get("/{id}", h.Redirect)
 	router.Post("/", h.ShortenText)
 	// // При простой аутентификации, можно использовать такую конструкцию:
@@ -78,41 +82,11 @@ func NewRouter(service *services.Shortener, cfg *config.Config, log *slog.Logger
 	// //     },
 	// //     ...
 	// // ]
-	// r.Get("/api/user/urls", h.UserURLs)
+	// router.Get("/api/user/urls", h.UserURLs)
 	// //
-
-	// //
-	// // здешний iter14
-	// // Далее добавьте в сервис новый асинхронный хендлер DELETE /api/user/urls,
-	// // который принимает список идентификаторов сокращённых URL для удаления в формате:
-	// r.Delete("/api/user/urls", h.DeleteUrls)
-	// //
-	// r.Group(func(r chi.Router) {
-	// 	r.Use(FromTrustedSubnet(ipChecker))
-	// 	r.Get("/api/internal/stats", h.Stats)
-	// })
 
 	return router
 }
-
-// func FromTrustedSubnet(checkerInterface services.IPCheckerInterface) func(http.Handler) http.Handler {
-// 	return func(next http.Handler) http.Handler {
-// 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 			fromTrustedSubnet, err := checkerInterface.IsRequestFromTrustedSubnet(r)
-// 			if err != nil {
-// 				http.Error(w, err.Error(), http.StatusForbidden)
-// 				return
-// 			}
-
-// 			if !fromTrustedSubnet {
-// 				http.Error(w, "forbidden", http.StatusForbidden)
-// 				return
-// 			}
-
-// 			next.ServeHTTP(w, r)
-// 		})
-// 	}
-// }
 
 // If the request body is gzipped, return a gzip reader, otherwise return the request body (default reader)
 func getDecompressedReader(r *http.Request) (io.Reader, error) {
@@ -129,42 +103,3 @@ func (h *Handler) Ping(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
-
-// // addEncryptedUserIDToCookie encrypts the userID and setting it as a cookie.
-// func (h *Handler) addEncryptedUserIDToCookie(w *http.ResponseWriter, userID string) error {
-// 	encryptedUserID, err := h.crypto.Encrypt([]byte(userID))
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	encodedCookieValue := hex.EncodeToString(encryptedUserID)
-
-// 	http.SetCookie(
-// 		*w,
-// 		&http.Cookie{
-// 			Name:  UserIDCookieName,
-// 			Value: encodedCookieValue,
-// 		},
-// 	)
-// 	return nil
-// }
-
-// // getUserID gets the userID from the cookie.
-// func (h *Handler) getUserID(r *http.Request) string {
-// 	encodedCookie, err := r.Cookie(UserIDCookieName)
-// 	if err != nil {
-// 		return h.service.GenerateNewUserID()
-// 	}
-
-// 	decodedCookie, err := hex.DecodeString(encodedCookie.Value)
-// 	if err != nil {
-// 		return h.service.GenerateNewUserID()
-// 	}
-
-// 	decryptedUserID, err := h.crypto.Decrypt(decodedCookie)
-// 	if err != nil {
-// 		return h.service.GenerateNewUserID()
-// 	}
-
-// 	return string(decryptedUserID)
-// }

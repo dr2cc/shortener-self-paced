@@ -10,7 +10,7 @@ import (
 // TODO: move to config if needed
 const keyLength = 8
 
-// ex. URLGenerator,поведение (метод)- (base_64_hash_generator)generator.GenerateIDFromString
+// ex. URLGenerator, поведение (метод)- (base_64_hash_generator)generator.GenerateIDFromString
 type Stringer interface {
 	GenerateIDfromString(url string) (string, error)
 }

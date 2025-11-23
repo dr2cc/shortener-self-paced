@@ -39,6 +39,9 @@ func Run(cfg *config.Config) {
 	repo := choosingStorage(log, cfg)
 
 	// Use-Case🧹🏦
+	// Считаю, что здесь правильно присвоено значение
+	// структуры RandomStringGenerator (по сути поведение- метод GenerateIDfromString)
+	// а не интерфейса Stringer () (интерфейс служит границей между слоями)
 	randomKey := random.RandomStringGenerator{}
 	// Создаем "сущность" этого сервиса
 	// TODO👀 - спросить наставника, в чем смысл такой сущности (еще глянуть в обеих чистых архитектурах)
@@ -48,7 +51,7 @@ func Run(cfg *config.Config) {
 
 	// HTTP Server🧹🏦
 	router := handlers.NewRouter(service, cfg, log)
-	restAPIserver, err := server.New(cfg, router) // service)
+	restAPIserver, err := server.New(cfg, router)
 	if err != nil {
 		log.Error("failed to create http server", sl.Err(err))
 		os.Exit(1)
@@ -82,10 +85,6 @@ func Run(cfg *config.Config) {
 
 func choosingStorage(log *slog.Logger, cfg *config.Config) storage.Repository {
 	if cfg.DatabaseDSN != "" {
-		// repo, err := NewPgRepository(cfg.DatabaseDSN, cfg.MigrationsPath)
-		// if err != nil {
-		// 	panic(err)
-		// }
 		repo, err := pg.NewPostgresRepo(log, cfg)
 		if err != nil {
 			log.Error("failed to connect pg storage")
