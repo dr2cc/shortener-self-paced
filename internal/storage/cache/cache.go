@@ -11,10 +11,10 @@ import (
 // InMemoryRepository is repository that uses memory for storage.
 type InMemoryRepository struct {
 	storage map[string]entity.ShortURL // map that will store urls
-	mutex   sync.RWMutex               // read-write mutex that will be used to synchronize access to the storage map
+	mutex   sync.RWMutex
 }
 
-// NewInMemoryRepository creates a new InMemoryRepository and returns a pointer to it.
+// Возвращает указатель на InMemoryRepository
 func NewInMemoryRepository() *InMemoryRepository {
 	return &InMemoryRepository{
 		storage: make(map[string]entity.ShortURL),
@@ -45,9 +45,23 @@ func (repo *InMemoryRepository) SaveBatch(_ context.Context, batch []entity.Shor
 // Save checks if the url is unique and then saving it to the memory.
 func (repo *InMemoryRepository) Save(_ context.Context, shortURL entity.ShortURL) error {
 	repo.mutex.RLock()
+	// "Comma-ok" idiom - используется в Go везде, где операция может иметь два возможных исхода, которые невозможно однозначно интерпретировать,
+	// основываясь только на возвращаемом значении:
+	// 1. Поиск/Извлечение: (Map, Каналы, reflect). Проверка наличия элемента или того, что канал не закрыт.
+	// 2. Проверка соответствия: (Type Assertion). Проверка того, соответствует ли базовый тип интерфейса ожидаемому конкретному типу.
+	// 3...
+
+	// Здесь мы проверяем наличие ключа (ID).
+	// Если он уже есть, значит это дубль
+	// ok == true
 	_, ok := repo.storage[shortURL.ID]
 	repo.mutex.RUnlock()
 
+	// Если выше мы уже нашли такой ключ, то вернем не nil, а
+	// &NotUniqueURLError{
+	//	Err:      err,
+	//	ShortURL: shortURL,
+	// }
 	if ok {
 		return storage.NewNotUniqueURLError(shortURL, nil)
 	}
@@ -82,46 +96,3 @@ func (repo *InMemoryRepository) Close(_ context.Context) error {
 func (repo *InMemoryRepository) Check(_ context.Context) error {
 	return nil
 }
-
-// // GetUsersUrls gets all the urls that were created by the user with the given id.
-// func (repo *InMemoryRepository) GetUsersUrls(_ context.Context, userID string) ([]entity.ShortURL, error) {
-// 	repo.mutex.RLock()
-// 	var URLs []entity.ShortURL
-// 	for _, URL := range repo.storage {
-// 		if URL.CreatedByID == userID {
-// 			URLs = append(URLs, URL)
-// 		}
-// 	}
-// 	repo.mutex.RUnlock()
-// 	return URLs, nil
-// }
-
-// // DeleteUrls deletes all given urls.
-// func (repo *InMemoryRepository) DeleteUrls(_ context.Context, urls []entity.ShortURL) error {
-// 	repo.mutex.Lock()
-// 	defer repo.mutex.Unlock()
-
-// 	now := time.Now()
-// 	for _, urlToDelete := range urls {
-// 		foundURL, ok := repo.storage[urlToDelete.ID]
-// 		if ok && foundURL.CreatedByID == urlToDelete.CreatedByID {
-// 			foundURL.DeletedAt = now
-// 			repo.storage[urlToDelete.ID] = foundURL
-// 		}
-// 	}
-
-// 	return nil
-// }
-
-// func (repo *InMemoryRepository) GetUsersAndUrlsCount(_ context.Context) (int, int, error) {
-// 	uniqueUsersIds := make(map[string]bool)
-
-// 	repo.mutex.RLock()
-// 	defer repo.mutex.RUnlock()
-
-// 	for _, shortURL := range repo.storage {
-// 		uniqueUsersIds[shortURL.CreatedByID] = true
-// 	}
-
-// 	return len(uniqueUsersIds), len(repo.storage), nil
-// }

@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"app/internal/entity"
+	"app/internal/storage"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 )
@@ -106,13 +108,20 @@ func (h *Handler) ShortenText(w http.ResponseWriter, r *http.Request) {
 
 	// userID := h.getUserID(r)
 
+	// Если нет ошибок и значение url уникально, то err == nil
+	// Если url не уникален, то
+	// err == entity.ShortURL{OriginalURL: url, ID:urlID},  &shorteningError{Err:err, ShortURL: shortURL}
 	shortURL, err := h.service.Shorten(r.Context(), string(url)) // , userID
 
-	// var notUniqueErr *storage.NotUniqueURLError
-	// if errors.As(err, &notUniqueErr) {
-	// 	publicationResult(w, h, shortURL, http.StatusConflict)
-	// 	return
-	// }
+	// iter13. Проверка на уникальность
+	// Сама проверка в Shorten, а точнеее в методе Save (при записи в хранилище).
+	// Здесь генерируем нужный ответ - 409
+	var notUniqueErr *storage.NotUniqueURLError
+	if errors.As(err, &notUniqueErr) {
+		publicationResult(w, h, shortURL, http.StatusConflict)
+		return
+	}
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

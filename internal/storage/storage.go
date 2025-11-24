@@ -41,4 +41,5 @@ func NewNotUniqueURLError(shortURL entity.ShortURL, err error) error {
 	}
 }
 
-var ErrNotUnique = func() error { return &NotUniqueURLError{} }()
+// // Будем использовать для тестов
+// var ErrNotUnique = func() error { return &NotUniqueURLError{} }()

@@ -75,11 +75,23 @@ func (sh *Shortener) Shorten(ctx context.Context, url string) (entity.ShortURL, 
 		// CreatedByID: userID,
 	}
 
+	// Пробуем записать в хранилище, с проверкой уникальности (iter13)
 	err = sh.repository.Save(ctx, shortURL)
+
+	// "Реакция" на уникальность / не уникальность
 	var notUniqueErr *storage.NotUniqueURLError
+	// 🔦 func errors.As(err error, target any) bool
+	// As находит первую ошибку в дереве err, соответствующую target, и, если она найдена,
+	// устанавливает target равным этому значению ошибки и возвращает true.
+	// В противном случае возвращает false.
+	// Дерево состоит из самого err, за которым следуют ошибки,
+	// полученные путём многократного вызова его метода Unwrap() error или Unwrap() []error.
+	// Когда err оборачивает несколько ошибок, As проверяет err, а затем выполняет обход в глубину его дочерних элементов.
 	if errors.As(err, &notUniqueErr) {
+		// Если запись не уникальна, возвращаем:
 		return shortURL, NewShorteningError(shortURL, err)
 	}
+
 	if err != nil {
 		return entity.ShortURL{}, err
 	}
