@@ -1,4 +1,4 @@
-// Пакет services содержит основную бизнес-логику приложения.
+// The services package contains the core business logic of the application.
 package services
 
 import (
@@ -12,8 +12,8 @@ import (
 	"time"
 )
 
-// // TODO❗ ShortenerInterface со всем поведением
-// // службы Shortener, будет необходим для сервера gRPC
+// // TODO❗ ShortenerInterface со всем поведением службы Shortener,
+// // будет необходим для сервера gRPC
 // type ShortenerInterface interface {
 // ShortenBatch(ctx context.Context, batch []entity.ExpandedURL, userID string) ([]entity.ExpandedURL, error)
 // Shorten(ctx context.Context, url string, userID string) (entity.ExpandedURL, error)
@@ -145,101 +145,3 @@ func NewShorteningError(shortURL entity.ExpandedURL, err error) error {
 		ShortURL: shortURL,
 	}
 }
-
-// // GetUrlsCreatedBy returns array of all urs that was shortened by given userID.
-// // It's just a wrapper for repository.GetUsersUrls.
-// func (service *Shortener) GetUrlsCreatedBy(ctx context.Context, userID string) ([]entity.ExpandedURL, error) {
-// 	return service.repository.GetUsersUrls(ctx, userID)
-// }
-
-// // GenerateNewUserID generates new user id.
-// // It's just a wrapper for random.GenerateNewUserID().
-// func (service *Shortener) GenerateNewUserID() string {
-// 	return service.Random.GenerateNewUserID()
-// }
-
-// // DeleteUrls deletes all urls with given ids that was created by userID.
-// // Implements fan-in and fan-out pattern for learning purposes.
-// func (service *Shortener) DeleteUrls(ctx context.Context, ids []string, userID string) {
-// 	done := make(chan struct{})
-// 	defer close(done)
-
-// 	workersCount := runtime.NumCPU()
-// 	inputCh := make(chan string)
-// 	entityToDelete := make([]entity.ExpandedURL, 0, len(ids))
-
-// 	go func() {
-// 		for _, id := range ids {
-// 			inputCh <- id
-// 		}
-
-// 		close(inputCh)
-// 	}()
-
-// 	workerChs := make([]chan entity.ExpandedURL, 0, workersCount)
-// 	for urlID := range inputCh {
-// 		workerCh := make(chan entity.ExpandedURL)
-// 		newWorker(urlID, userID, workerCh)
-// 		workerChs = append(workerChs, workerCh)
-// 	}
-
-// 	for v := range fanIn(done, workerChs...) {
-// 		entityToDelete = append(entityToDelete, v)
-// 	}
-
-// 	err := service.repository.DeleteUrls(ctx, entityToDelete)
-// 	if err != nil {
-// 		fmt.Printf("couldn't delete urls: %v\n", err)
-// 	}
-// }
-
-// func (service *Shortener) GetStats(ctx context.Context) (entity.Stats, error) {
-// 	usersCount, urlsCount, err := service.repository.GetUsersAndUrlsCount(ctx)
-// 	if err != nil {
-// 		return entity.Stats{}, err
-// 	}
-
-// 	return entity.Stats{UsersCount: usersCount, UrlsCount: urlsCount}, nil
-// }
-
-// func newWorker(urlID string, userID string, out chan entity.ExpandedURL) {
-// 	go func() {
-// 		defer func() {
-// 			if x := recover(); x != nil {
-// 				newWorker(urlID, userID, out)
-// 				log.Printf("run time panic: %v, %v", x, out)
-// 			}
-// 		}()
-
-// 		out <- entity.ExpandedURL{ID: urlID, CreatedByID: userID}
-// 		close(out)
-// 	}()
-// }
-
-// func fanIn(done <-chan struct{}, channels ...chan entity.ExpandedURL) chan entity.ExpandedURL {
-// 	var wg sync.WaitGroup
-// 	multiplexedStream := make(chan entity.ExpandedURL)
-
-// 	multiplex := func(c <-chan entity.ExpandedURL) {
-// 		defer wg.Done()
-// 		for v := range c {
-// 			select {
-// 			case <-done:
-// 				return
-// 			case multiplexedStream <- v:
-// 			}
-// 		}
-// 	}
-
-// 	wg.Add(len(channels))
-// 	for _, c := range channels {
-// 		go multiplex(c)
-// 	}
-
-// 	go func() {
-// 		wg.Wait()
-// 		close(multiplexedStream)
-// 	}()
-
-// 	return multiplexedStream
-// }

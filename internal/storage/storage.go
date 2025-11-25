@@ -15,12 +15,9 @@ type Repository interface {
 	Close(_ context.Context) error
 	Check(ctx context.Context) error
 	SaveBatch(ctx context.Context, batch []entity.ExpandedURL) error
-	// GetUsersUrls(ctx context.Context, userID string) ([]entity.ExpandedURL, error)
-	// DeleteUrls(ctx context.Context, urls []entity.ExpandedURL) error
-	// GetUsersAndUrlsCount(ctx context.Context) (int, int, error)
 }
 
-// NotUniqueURLError is error occurred when saving url is already exists.
+// NotUniqueURLError — ошибка, возникшая при сохранении URL, который уже существует.
 type NotUniqueURLError struct {
 	Err      error
 	ShortURL entity.ExpandedURL

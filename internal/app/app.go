@@ -1,3 +1,4 @@
+// Package app configures and runs application.
 package app
 
 import (
@@ -27,7 +28,7 @@ const (
 	envProd  = "prod"
 )
 
-// Run creates objects (via constructors!)
+// Run создает объекты (через конструкторы!)
 func Run(cfg *config.Config) {
 	// Создаем объект логгера
 	log := setupLogger(cfg.Env)

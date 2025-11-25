@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// Get the original URL
+// Получаем первоначальный url, цель- перенапраление на него при получении сокращенного
 func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 	uID := chi.URLParam(r, "id") //nolint:contextcheck
 
@@ -20,11 +20,6 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "cant find full url", http.StatusNotFound)
 		return
 	}
-
-	// if !shortURL.DeletedAt.IsZero() {
-	// 	http.Error(w, "url is deleted", http.StatusGone)
-	// 	return
-	// }
 
 	w.Header().Set("Content-Type", "text/html")
 

@@ -88,7 +88,8 @@ func NewRouter(service *services.Shortener, cfg *config.Config, log *slog.Logger
 	return router
 }
 
-// If the request body is gzipped, return a gzip reader, otherwise return the request body (default reader)
+// Если тело запроса сжато с помощью gzip, возвращает gzip reader,
+// в противном случае возвращает request body (default reader)
 func getDecompressedReader(r *http.Request) (io.Reader, error) {
 	if r.Header.Get("Content-Encoding") == "gzip" {
 		return gzip.NewReader(r.Body)

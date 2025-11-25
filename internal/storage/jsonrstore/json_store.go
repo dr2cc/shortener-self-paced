@@ -13,7 +13,7 @@ import (
 	"sync"
 )
 
-// FileRepository is repository that uses files for storage.
+// FileRepository — репозиторий, использующий файлы для хранения.
 type FileRepository struct {
 	file   *os.File      // file that we will be writing to
 	writer *bufio.Writer // buffered writer that will write to the file
@@ -36,6 +36,8 @@ func NewFileRepository(filePath string) (*FileRepository, error) {
 	}, nil
 }
 
+// SaveBatch сохраняет несколько URL-адресов.
+// Проверяет уникальность URL-адресов и сохраняет их.
 func (repo *FileRepository) SaveBatch(ctx context.Context, batch []entity.ExpandedURL) error {
 	for _, shortURL := range batch {
 		_, err := repo.FindByID(ctx, shortURL.ID)
@@ -70,7 +72,7 @@ func (repo *FileRepository) SaveBatch(ctx context.Context, batch []entity.Expand
 	return nil
 }
 
-// Save checks if the url is unique and then saving it to the file.
+// Save проверяет уникальность URL-адреса и сохраняет его
 func (repo *FileRepository) Save(ctx context.Context, shortURL entity.ExpandedURL) error {
 	_, err := repo.FindByID(ctx, shortURL.ID)
 	if err == nil {
@@ -137,138 +139,3 @@ func (repo *FileRepository) Check(_ context.Context) error {
 	_, err := repo.file.Stat()
 	return err
 }
-
-// // readFileToMap reads the file and returns a map of all the urls in the file.
-// func (repo *FileRepository) readFileToMap() (map[string]entity.ExpandedURL, error) {
-// 	if _, err := repo.file.Seek(0, io.SeekStart); err != nil {
-// 		return nil, err
-// 	}
-// 	var entry entity.ExpandedURL
-// 	existingURLs := make(map[string]entity.ExpandedURL)
-
-// 	scanner := bufio.NewScanner(repo.file)
-
-// 	for scanner.Scan() {
-// 		line := scanner.Bytes()
-// 		if err := json.NewDecoder(bytes.NewReader(line)).Decode(&entry); err != nil {
-// 			return nil, err
-// 		}
-// 		existingURLs[entry.ID] = entry
-// 	}
-// 	return existingURLs, nil
-// }
-
-// // writeMapToFile writes the map to the file.
-// func (repo *FileRepository) writeMapToFile(existingURLs map[string]entity.ExpandedURL) error {
-// 	if err := repo.file.Truncate(0); err != nil {
-// 		return err
-// 	}
-// 	if _, err := repo.file.Seek(0, 0); err != nil {
-// 		return err
-// 	}
-
-// 	for _, url := range existingURLs {
-
-// 		data, err := json.Marshal(url)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		if _, errWrite := repo.writer.Write(data); errWrite != nil {
-// 			return errWrite
-// 		}
-
-// 		if errWriteByte := repo.writer.WriteByte('\n'); errWriteByte != nil {
-// 			return errWriteByte
-// 		}
-
-// 	}
-// 	if err := repo.writer.Flush(); err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
-// // GetUsersUrls reads the file line by line and returning all the urls
-// // that were created by user with id userID.
-// func (repo *FileRepository) GetUsersUrls(_ context.Context, userID string) ([]entity.ExpandedURL, error) {
-// 	repo.mutex.RLock()
-// 	defer repo.mutex.RUnlock()
-
-// 	if _, err := repo.file.Seek(0, io.SeekStart); err != nil {
-// 		return nil, err
-// 	}
-
-// 	var entry entity.ExpandedURL
-// 	var URLs []entity.ExpandedURL
-
-// 	scanner := bufio.NewScanner(repo.file)
-
-// 	count := 0
-// 	for scanner.Scan() {
-// 		line := scanner.Bytes()
-// 		if err := json.NewDecoder(bytes.NewReader(line)).Decode(&entry); err != nil {
-// 			return nil, err
-// 		}
-// 		count += 1
-// 		fmt.Println(count)
-
-// 		if entry.CreatedByID == userID {
-// 			URLs = append(URLs, entry)
-// 		}
-// 	}
-
-// 	return URLs, nil
-// }
-
-// // DeleteUrls deletes all given urls.
-// func (repo *FileRepository) DeleteUrls(_ context.Context, urls []entity.ExpandedURL) error {
-// 	repo.mutex.Lock()
-// 	defer repo.mutex.Unlock()
-
-// 	existingURLs, err := repo.readFileToMap()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// mark deleted urls in memory
-// 	now := time.Now()
-// 	for _, urlToDelete := range urls {
-// 		foundURL, ok := existingURLs[urlToDelete.ID]
-// 		if ok && foundURL.CreatedByID == urlToDelete.CreatedByID {
-// 			foundURL.DeletedAt = now
-// 			existingURLs[urlToDelete.ID] = foundURL
-// 		}
-// 	}
-
-// 	// write back in memory map to file
-// 	err = repo.writeMapToFile(existingURLs)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
-// func (repo *FileRepository) GetUsersAndUrlsCount(_ context.Context) (int, int, error) {
-// 	if _, err := repo.file.Seek(0, io.SeekStart); err != nil {
-// 		return 0, 0, err
-// 	}
-
-// 	uniqueUsersIds := make(map[string]bool)
-// 	urlsCount := 0
-
-// 	var entry entity.ExpandedURL
-// 	scanner := bufio.NewScanner(repo.file)
-
-// 	for scanner.Scan() {
-// 		line := scanner.Bytes()
-// 		if err := json.NewDecoder(bytes.NewReader(line)).Decode(&entry); err != nil {
-// 			return 0, 0, err
-// 		}
-// 		urlsCount++
-// 		uniqueUsersIds[entry.CreatedByID] = true
-// 	}
-
-// 	return len(uniqueUsersIds), urlsCount, nil
-// }

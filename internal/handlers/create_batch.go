@@ -6,14 +6,14 @@ import (
 	"net/http"
 )
 
-// ShorteningBatchResult is shortening result of batch operation.
+// ShorteningBatchResult — результат сокращения url при пакетном вводе
 type ShorteningBatchResult struct {
 	CorrelationID string `json:"correlation_id"`
 	ShortURL      string `json:"short_url"`
 }
 
 func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
-	// "correlation_id" и "original_url" - так в запросе, по заданию  на инкремент 12,
+	// "correlation_id" и "original_url" - так в запросе, по заданию  на iter12,
 	// называются ключи в строках JSON запроса
 	type request struct {
 		CorrelationID string `json:"correlation_id"`

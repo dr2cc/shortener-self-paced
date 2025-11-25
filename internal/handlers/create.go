@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-// "result" - так в ответе, по заданию  на инкремент 7, называется ключ в JSON запросе
+// "result" - так в ответе, по заданию  на iter7, называется ключ в JSON запросе
 type ResponseAPI struct {
 	Result string `json:"result"`
 }
@@ -89,7 +89,6 @@ func publicationResult(w http.ResponseWriter, h *Handler, shortURL entity.Expand
 	}
 }
 
-// Shorten (save.New)
 func (h *Handler) ShortenText(w http.ResponseWriter, r *http.Request) {
 	// Получается этого хватает, а все остальное делает
 	// chi..Use(middleware.Compress ??!

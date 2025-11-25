@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-// InMemoryRepository is repository that uses memory for storage.
+// InMemoryRepository — репозиторий, использующий память для хранения.
 type InMemoryRepository struct {
 	storage map[string]entity.ExpandedURL // map that will store urls
 	mutex   sync.RWMutex
@@ -22,8 +22,8 @@ func NewInMemoryRepository() *InMemoryRepository {
 	}
 }
 
-// SaveBatch saves multiple urls.
-// Checks if the urls are unique and then saving them.
+// SaveBatch сохраняет несколько URL-адресов.
+// Проверяет уникальность URL-адресов и сохраняет их.
 func (repo *InMemoryRepository) SaveBatch(_ context.Context, batch []entity.ExpandedURL) error {
 	repo.mutex.Lock()
 	defer repo.mutex.Unlock()
@@ -42,7 +42,7 @@ func (repo *InMemoryRepository) SaveBatch(_ context.Context, batch []entity.Expa
 	return nil
 }
 
-// Save checks if the url is unique and then saving it to the memory.
+// Save проверяет уникальность URL-адреса и сохраняет его
 func (repo *InMemoryRepository) Save(_ context.Context, shortURL entity.ExpandedURL) error {
 	repo.mutex.RLock()
 	// "Comma-ok" idiom - используется в Go везде, где операция может иметь два возможных исхода, которые невозможно однозначно интерпретировать,
@@ -73,7 +73,7 @@ func (repo *InMemoryRepository) Save(_ context.Context, shortURL entity.Expanded
 	return nil
 }
 
-// GetByID gets the url by id.
+// FindByID находит URL по идентификатору.
 func (repo *InMemoryRepository) FindByID(_ context.Context, id string) (entity.ExpandedURL, error) {
 	repo.mutex.RLock()
 	url, ok := repo.storage[id]

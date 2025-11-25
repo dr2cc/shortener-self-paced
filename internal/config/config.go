@@ -8,8 +8,6 @@ import (
 	"os"
 )
 
-// const KeySize = 2 * aes.BlockSize //nolint:gomnd
-
 type Config struct {
 	Env           string `yaml:"env" env-default:"local"`
 	ServerAddress string `json:"server_address"`
@@ -17,19 +15,11 @@ type Config struct {
 	FilePath      string `json:"file_storage_path"`
 	DatabaseDSN   string `json:"database_dsn"`
 	ConfigPath    string
-	// MigrationsPath string
-	// TrustedSubnet  string `json:"trusted_subnet"`
-	// EncryptionKey  []byte
 }
 
-// New reads the configuration from the command line flags,
-// environment variables and a configuration file (with priority).
+// NewConfig считывает конфигурацию в такой последовательности:
+// из флагов командной строки, переменных окружения и файла конфигурации.
 func NewConfig() (*Config, error) {
-	// key := []byte(os.Getenv("ENCRYPTION_KEY"))
-	// if len(key) == 0 {
-	// 	key = generateNewEncryptionKey()
-	// }
-
 	cfg := &Config{
 		Env:           "local", // Окружение - local, dev или prod,в первую очередь для логгера
 		ServerAddress: "",
@@ -37,7 +27,6 @@ func NewConfig() (*Config, error) {
 		FilePath:      "",
 		DatabaseDSN:   "",
 		ConfigPath:    "",
-		// MigrationsPath: getEnv("MIGRATIONS_PATH", "file://internal/app/storage/migrations/"),
 	}
 
 	flag.StringVar(&cfg.ServerAddress, "a", "", "host to listen on")
@@ -46,8 +35,6 @@ func NewConfig() (*Config, error) {
 	flag.StringVar(&cfg.FilePath, "f", "", "file storage path")
 	flag.StringVar(&cfg.DatabaseDSN, "d", "", "database dsn for connecting to postgres")
 	flag.StringVar(&cfg.ConfigPath, "c", "", "config path")
-	// flag.StringVar(&cfg.TrustedSubnet, "t", "", "trusted subnet (CIDR notation)")
-	// flag.BoolVar(&cfg.EnableHTTPS, "s", false, "enable https")
 
 	flag.Parse()
 
@@ -56,27 +43,15 @@ func NewConfig() (*Config, error) {
 		return &Config{}, err
 	}
 
-	cfg.ServerAddress = coalesceStrings(cfg.ServerAddress, os.Getenv("SERVER_ADDRESS"), configFromFile.ServerAddress, ":8080")
-	cfg.BaseURL = coalesceStrings(cfg.BaseURL, os.Getenv("BASE_URL"), configFromFile.BaseURL, "http://localhost:8080")
-	cfg.FilePath = coalesceStrings(cfg.FilePath, os.Getenv("FILE_STORAGE_PATH"), configFromFile.FilePath)
-	cfg.DatabaseDSN = coalesceStrings(cfg.DatabaseDSN, os.Getenv("DATABASE_DSN"), configFromFile.DatabaseDSN)
-	// cfg.EnableHTTPS = coalesceBool(cfg.EnableHTTPS, os.Getenv("ENABLE_HTTPS") == "true", configFromFile.EnableHTTPS)
-	// cfg.TrustedSubnet = coalesceStrings(cfg.TrustedSubnet, os.Getenv("TRUSTED_SUBNET"), configFromFile.TrustedSubnet, "127.0.0.1/24")
+	cfg.ServerAddress = priorityLine(cfg.ServerAddress, os.Getenv("SERVER_ADDRESS"), configFromFile.ServerAddress, ":8080")
+	cfg.BaseURL = priorityLine(cfg.BaseURL, os.Getenv("BASE_URL"), configFromFile.BaseURL, "http://localhost:8080")
+	cfg.FilePath = priorityLine(cfg.FilePath, os.Getenv("FILE_STORAGE_PATH"), configFromFile.FilePath)
+	cfg.DatabaseDSN = priorityLine(cfg.DatabaseDSN, os.Getenv("DATABASE_DSN"), configFromFile.DatabaseDSN)
 
 	return cfg, nil
 }
 
-// // generateNewEncryptionKey generates a random key of the specified KeySize.
-// func generateNewEncryptionKey() []byte {
-// 	randomGenerator := random.TrulyRandomGenerator{}
-// 	randomKey, err := randomGenerator.GenerateRandomBytes(KeySize)
-// 	if err != nil {
-// 		randomKey = make([]byte, KeySize)
-// 	}
-// 	return randomKey
-// }
-
-func coalesceStrings(strings ...string) string {
+func priorityLine(strings ...string) string {
 	for _, str := range strings {
 		if str != "" {
 			return str
@@ -85,7 +60,7 @@ func coalesceStrings(strings ...string) string {
 	return ""
 }
 
-// func coalesceBool(bools ...bool) bool {
+// func priorityBool(bools ...bool) bool {
 // 	for _, boolVar := range bools {
 // 		if boolVar {
 // 			return true
@@ -112,11 +87,3 @@ func (c *Config) parseConfigFile(configPath string) (Config, error) {
 	err = json.Unmarshal(f, &configFromFile)
 	return configFromFile, err
 }
-
-// // If the environment variable exists, return it, otherwise return the fallback value.
-// func getEnv(key, fallback string) string {
-// 	if value, ok := os.LookupEnv(key); ok {
-// 		return value
-// 	}
-// 	return fallback
-// }

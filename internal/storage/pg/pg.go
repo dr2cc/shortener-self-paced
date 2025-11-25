@@ -84,6 +84,7 @@ func checkTab(log *slog.Logger, repo *PostgresRepo) error {
 	return nil
 }
 
+// Save проверяет уникальность URL-адреса и сохраняет его
 func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ExpandedURL) error {
 	const op = "repository.pg.Save" // Имя текущей функции для логов и ошибок
 	url := shortURL.OriginalURL
@@ -129,6 +130,8 @@ func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ExpandedURL)
 	return nil
 }
 
+// SaveBatch сохраняет несколько URL-адресов.
+// Проверяет уникальность URL-адресов и сохраняет их.
 func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []entity.ExpandedURL) error {
 	// 1. Начинаем транзакцию с контекстом
 	// Это гарантирует, что все операции COPY выполняются в рамках одного соединения.
@@ -177,6 +180,7 @@ func (repo *PostgresRepo) Check(ctx context.Context) error {
 	return repo.DB.PingContext(ctx)
 }
 
+// FindByID находит URL по идентификатору.
 func (repo *PostgresRepo) FindByID(ctx context.Context, id string) (entity.ExpandedURL, error) {
 	var ent entity.ExpandedURL
 	err := repo.DB.QueryRowContext(

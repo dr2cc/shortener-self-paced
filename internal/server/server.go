@@ -14,6 +14,6 @@ type Server interface {
 }
 
 func New(config *config.Config, router chi.Router) (Server, error) {
-	// Здесь будем выбирать между HTTP и HTTPS (инкремент 21)
+	// Здесь будем запускать HTTP и HTTPS (инкремент 21)
 	return NewHTTP(config, router)
 }
