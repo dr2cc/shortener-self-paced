@@ -10,20 +10,20 @@ import (
 // Интерфейс Repository определяет работу с хранением данных в проекте
 // DataStorageMethods
 type Repository interface {
-	Save(ctx context.Context, shortURL entity.ShortURL) error
-	FindByID(ctx context.Context, id string) (entity.ShortURL, error)
+	Save(ctx context.Context, shortURL entity.ExpandedURL) error
+	FindByID(ctx context.Context, id string) (entity.ExpandedURL, error)
 	Close(_ context.Context) error
 	Check(ctx context.Context) error
-	SaveBatch(ctx context.Context, batch []entity.ShortURL) error
-	// GetUsersUrls(ctx context.Context, userID string) ([]entity.ShortURL, error)
-	// DeleteUrls(ctx context.Context, urls []entity.ShortURL) error
+	SaveBatch(ctx context.Context, batch []entity.ExpandedURL) error
+	// GetUsersUrls(ctx context.Context, userID string) ([]entity.ExpandedURL, error)
+	// DeleteUrls(ctx context.Context, urls []entity.ExpandedURL) error
 	// GetUsersAndUrlsCount(ctx context.Context) (int, int, error)
 }
 
 // NotUniqueURLError is error occurred when saving url is already exists.
 type NotUniqueURLError struct {
 	Err      error
-	ShortURL entity.ShortURL
+	ShortURL entity.ExpandedURL
 }
 
 func (err *NotUniqueURLError) Error() string {
@@ -34,7 +34,7 @@ func (err *NotUniqueURLError) Unwrap() error {
 	return err.Err
 }
 
-func NewNotUniqueURLError(shortURL entity.ShortURL, err error) error {
+func NewNotUniqueURLError(shortURL entity.ExpandedURL, err error) error {
 	return &NotUniqueURLError{
 		Err:      err,
 		ShortURL: shortURL,

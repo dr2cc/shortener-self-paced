@@ -15,9 +15,9 @@ import (
 // // TODO❗ ShortenerInterface со всем поведением
 // // службы Shortener, будет необходим для сервера gRPC
 // type ShortenerInterface interface {
-// ShortenBatch(ctx context.Context, batch []entity.ShortURL, userID string) ([]entity.ShortURL, error)
-// Shorten(ctx context.Context, url string, userID string) (entity.ShortURL, error)
-// FindURL(ctx context.Context, id string) (entity.ShortURL, error)
+// ShortenBatch(ctx context.Context, batch []entity.ExpandedURL, userID string) ([]entity.ExpandedURL, error)
+// Shorten(ctx context.Context, url string, userID string) (entity.ExpandedURL, error)
+// FindURL(ctx context.Context, id string) (entity.ExpandedURL, error)
 // HealthCheck(ctx context.Context) error
 // FormatShortURL(urlID string) string
 // }
@@ -43,9 +43,9 @@ func New(rand random.Stringer, repo storage.Repository, conf *config.Config) *Sh
 	}
 }
 
-// ShortenBatch сокращает массив значений []entity.ShortURL
+// ShortenBatch сокращает массив значений []entity.ExpandedURL
 // Все записи пакета должны содержать OriginalURL.
-func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ShortURL) ([]entity.ShortURL, error) {
+func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ExpandedURL) ([]entity.ExpandedURL, error) {
 	for i, URL := range batch {
 		urlID, err := sh.Random.GenerateIDfromString(URL.OriginalURL)
 		if err != nil {
@@ -63,13 +63,13 @@ func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ShortURL) 
 }
 
 // Shorten сокращает полный URL и возвращает заполненную структуру ShortURL
-func (sh *Shortener) Shorten(ctx context.Context, url string) (entity.ShortURL, error) {
+func (sh *Shortener) Shorten(ctx context.Context, url string) (entity.ExpandedURL, error) {
 	urlID, err := sh.Random.GenerateIDfromString(url)
 	if err != nil {
-		return entity.ShortURL{}, err
+		return entity.ExpandedURL{}, err
 	}
 
-	shortURL := entity.ShortURL{
+	shortURL := entity.ExpandedURL{
 		OriginalURL: url,
 		ID:          urlID,
 		// CreatedByID: userID,
@@ -93,18 +93,18 @@ func (sh *Shortener) Shorten(ctx context.Context, url string) (entity.ShortURL, 
 	}
 
 	if err != nil {
-		return entity.ShortURL{}, err
+		return entity.ExpandedURL{}, err
 	}
 
 	return shortURL, nil
 }
 
 // Функция FindURL находит в хранилище полный URL-адрес по указанному идентификатору.
-// Возвращает заполненную структуру entity.ShortURL
-func (sh *Shortener) FindURL(ctx context.Context, id string) (entity.ShortURL, error) {
+// Возвращает заполненную структуру entity.ExpandedURL
+func (sh *Shortener) FindURL(ctx context.Context, id string) (entity.ExpandedURL, error) {
 	origURL, err := sh.repository.FindByID(ctx, id)
 	if err != nil {
-		return entity.ShortURL{}, err //Shortener
+		return entity.ExpandedURL{}, err //Shortener
 	}
 	return origURL, nil
 }
@@ -127,7 +127,7 @@ func (sh *Shortener) FormatShortURL(urlID string) string {
 // возникшей в процессе работы службы
 type shorteningError struct {
 	Err      error
-	ShortURL entity.ShortURL
+	ShortURL entity.ExpandedURL
 }
 
 func (err *shorteningError) Error() string {
@@ -139,7 +139,7 @@ func (err *shorteningError) Unwrap() error {
 }
 
 // NewShorteningError добавляет (wraps) к ошибке поле err с дополнительной информацией об URL
-func NewShorteningError(shortURL entity.ShortURL, err error) error {
+func NewShorteningError(shortURL entity.ExpandedURL, err error) error {
 	return &shorteningError{
 		Err:      err,
 		ShortURL: shortURL,
@@ -148,7 +148,7 @@ func NewShorteningError(shortURL entity.ShortURL, err error) error {
 
 // // GetUrlsCreatedBy returns array of all urs that was shortened by given userID.
 // // It's just a wrapper for repository.GetUsersUrls.
-// func (service *Shortener) GetUrlsCreatedBy(ctx context.Context, userID string) ([]entity.ShortURL, error) {
+// func (service *Shortener) GetUrlsCreatedBy(ctx context.Context, userID string) ([]entity.ExpandedURL, error) {
 // 	return service.repository.GetUsersUrls(ctx, userID)
 // }
 
@@ -166,7 +166,7 @@ func NewShorteningError(shortURL entity.ShortURL, err error) error {
 
 // 	workersCount := runtime.NumCPU()
 // 	inputCh := make(chan string)
-// 	entityToDelete := make([]entity.ShortURL, 0, len(ids))
+// 	entityToDelete := make([]entity.ExpandedURL, 0, len(ids))
 
 // 	go func() {
 // 		for _, id := range ids {
@@ -176,9 +176,9 @@ func NewShorteningError(shortURL entity.ShortURL, err error) error {
 // 		close(inputCh)
 // 	}()
 
-// 	workerChs := make([]chan entity.ShortURL, 0, workersCount)
+// 	workerChs := make([]chan entity.ExpandedURL, 0, workersCount)
 // 	for urlID := range inputCh {
-// 		workerCh := make(chan entity.ShortURL)
+// 		workerCh := make(chan entity.ExpandedURL)
 // 		newWorker(urlID, userID, workerCh)
 // 		workerChs = append(workerChs, workerCh)
 // 	}
@@ -202,7 +202,7 @@ func NewShorteningError(shortURL entity.ShortURL, err error) error {
 // 	return entity.Stats{UsersCount: usersCount, UrlsCount: urlsCount}, nil
 // }
 
-// func newWorker(urlID string, userID string, out chan entity.ShortURL) {
+// func newWorker(urlID string, userID string, out chan entity.ExpandedURL) {
 // 	go func() {
 // 		defer func() {
 // 			if x := recover(); x != nil {
@@ -211,16 +211,16 @@ func NewShorteningError(shortURL entity.ShortURL, err error) error {
 // 			}
 // 		}()
 
-// 		out <- entity.ShortURL{ID: urlID, CreatedByID: userID}
+// 		out <- entity.ExpandedURL{ID: urlID, CreatedByID: userID}
 // 		close(out)
 // 	}()
 // }
 
-// func fanIn(done <-chan struct{}, channels ...chan entity.ShortURL) chan entity.ShortURL {
+// func fanIn(done <-chan struct{}, channels ...chan entity.ExpandedURL) chan entity.ExpandedURL {
 // 	var wg sync.WaitGroup
-// 	multiplexedStream := make(chan entity.ShortURL)
+// 	multiplexedStream := make(chan entity.ExpandedURL)
 
-// 	multiplex := func(c <-chan entity.ShortURL) {
+// 	multiplex := func(c <-chan entity.ExpandedURL) {
 // 		defer wg.Done()
 // 		for v := range c {
 // 			select {

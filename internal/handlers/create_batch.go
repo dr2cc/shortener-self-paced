@@ -32,7 +32,7 @@ func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	batch := make([]entity.ShortURL, len(input))
+	batch := make([]entity.ExpandedURL, len(input))
 
 	for i, shortURLInput := range input {
 		if shortURLInput.OriginalURL == "" {
@@ -40,7 +40,7 @@ func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Здесь в batch записываются все данные полученные из запроса клиента
-		batch[i] = entity.ShortURL{
+		batch[i] = entity.ExpandedURL{
 			OriginalURL:   shortURLInput.OriginalURL,
 			CorrelationID: shortURLInput.CorrelationID,
 		}

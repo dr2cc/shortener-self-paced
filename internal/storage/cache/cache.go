@@ -10,21 +10,21 @@ import (
 
 // InMemoryRepository is repository that uses memory for storage.
 type InMemoryRepository struct {
-	storage map[string]entity.ShortURL // map that will store urls
+	storage map[string]entity.ExpandedURL // map that will store urls
 	mutex   sync.RWMutex
 }
 
 // Возвращает указатель на InMemoryRepository
 func NewInMemoryRepository() *InMemoryRepository {
 	return &InMemoryRepository{
-		storage: make(map[string]entity.ShortURL),
+		storage: make(map[string]entity.ExpandedURL),
 		mutex:   sync.RWMutex{},
 	}
 }
 
 // SaveBatch saves multiple urls.
 // Checks if the urls are unique and then saving them.
-func (repo *InMemoryRepository) SaveBatch(_ context.Context, batch []entity.ShortURL) error {
+func (repo *InMemoryRepository) SaveBatch(_ context.Context, batch []entity.ExpandedURL) error {
 	repo.mutex.Lock()
 	defer repo.mutex.Unlock()
 
@@ -43,7 +43,7 @@ func (repo *InMemoryRepository) SaveBatch(_ context.Context, batch []entity.Shor
 }
 
 // Save checks if the url is unique and then saving it to the memory.
-func (repo *InMemoryRepository) Save(_ context.Context, shortURL entity.ShortURL) error {
+func (repo *InMemoryRepository) Save(_ context.Context, shortURL entity.ExpandedURL) error {
 	repo.mutex.RLock()
 	// "Comma-ok" idiom - используется в Go везде, где операция может иметь два возможных исхода, которые невозможно однозначно интерпретировать,
 	// основываясь только на возвращаемом значении:
@@ -74,13 +74,13 @@ func (repo *InMemoryRepository) Save(_ context.Context, shortURL entity.ShortURL
 }
 
 // GetByID gets the url by id.
-func (repo *InMemoryRepository) FindByID(_ context.Context, id string) (entity.ShortURL, error) {
+func (repo *InMemoryRepository) FindByID(_ context.Context, id string) (entity.ExpandedURL, error) {
 	repo.mutex.RLock()
 	url, ok := repo.storage[id]
 	repo.mutex.RUnlock()
 
 	if !ok {
-		return entity.ShortURL{}, errors.New("can't find full url by id")
+		return entity.ExpandedURL{}, errors.New("can't find full url by id")
 	}
 
 	return url, nil
@@ -88,7 +88,7 @@ func (repo *InMemoryRepository) FindByID(_ context.Context, id string) (entity.S
 
 // Close clears map.
 func (repo *InMemoryRepository) Close(_ context.Context) error {
-	repo.storage = make(map[string]entity.ShortURL)
+	repo.storage = make(map[string]entity.ExpandedURL)
 	return nil
 }
 

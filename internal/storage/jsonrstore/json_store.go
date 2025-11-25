@@ -36,7 +36,7 @@ func NewFileRepository(filePath string) (*FileRepository, error) {
 	}, nil
 }
 
-func (repo *FileRepository) SaveBatch(ctx context.Context, batch []entity.ShortURL) error {
+func (repo *FileRepository) SaveBatch(ctx context.Context, batch []entity.ExpandedURL) error {
 	for _, shortURL := range batch {
 		_, err := repo.FindByID(ctx, shortURL.ID)
 		if err == nil {
@@ -71,7 +71,7 @@ func (repo *FileRepository) SaveBatch(ctx context.Context, batch []entity.ShortU
 }
 
 // Save checks if the url is unique and then saving it to the file.
-func (repo *FileRepository) Save(ctx context.Context, shortURL entity.ShortURL) error {
+func (repo *FileRepository) Save(ctx context.Context, shortURL entity.ExpandedURL) error {
 	_, err := repo.FindByID(ctx, shortURL.ID)
 	if err == nil {
 		return storage.NewNotUniqueURLError(shortURL, nil)
@@ -102,29 +102,29 @@ func (repo *FileRepository) Save(ctx context.Context, shortURL entity.ShortURL) 
 
 // FindByID находит URL по идентификатору.
 // Считывает файл строка за строкой и возвращает URL, соответствующий указанному идентификатору.
-func (repo *FileRepository) FindByID(_ context.Context, id string) (entity.ShortURL, error) {
+func (repo *FileRepository) FindByID(_ context.Context, id string) (entity.ExpandedURL, error) {
 	repo.mutex.RLock()
 	defer repo.mutex.RUnlock()
 
 	if _, err := repo.file.Seek(0, io.SeekStart); err != nil {
-		return entity.ShortURL{}, err
+		return entity.ExpandedURL{}, err
 	}
 
-	var entry entity.ShortURL
+	var entry entity.ExpandedURL
 
 	scanner := bufio.NewScanner(repo.file)
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if err := json.NewDecoder(bytes.NewReader(line)).Decode(&entry); err != nil {
-			return entity.ShortURL{}, err
+			return entity.ExpandedURL{}, err
 		}
 		if entry.ID == id {
 			return entry, nil
 		}
 	}
 
-	return entity.ShortURL{}, errors.New("can't find full url by id")
+	return entity.ExpandedURL{}, errors.New("can't find full url by id")
 }
 
 // Close closes file.
@@ -139,12 +139,12 @@ func (repo *FileRepository) Check(_ context.Context) error {
 }
 
 // // readFileToMap reads the file and returns a map of all the urls in the file.
-// func (repo *FileRepository) readFileToMap() (map[string]entity.ShortURL, error) {
+// func (repo *FileRepository) readFileToMap() (map[string]entity.ExpandedURL, error) {
 // 	if _, err := repo.file.Seek(0, io.SeekStart); err != nil {
 // 		return nil, err
 // 	}
-// 	var entry entity.ShortURL
-// 	existingURLs := make(map[string]entity.ShortURL)
+// 	var entry entity.ExpandedURL
+// 	existingURLs := make(map[string]entity.ExpandedURL)
 
 // 	scanner := bufio.NewScanner(repo.file)
 
@@ -159,7 +159,7 @@ func (repo *FileRepository) Check(_ context.Context) error {
 // }
 
 // // writeMapToFile writes the map to the file.
-// func (repo *FileRepository) writeMapToFile(existingURLs map[string]entity.ShortURL) error {
+// func (repo *FileRepository) writeMapToFile(existingURLs map[string]entity.ExpandedURL) error {
 // 	if err := repo.file.Truncate(0); err != nil {
 // 		return err
 // 	}
@@ -191,7 +191,7 @@ func (repo *FileRepository) Check(_ context.Context) error {
 
 // // GetUsersUrls reads the file line by line and returning all the urls
 // // that were created by user with id userID.
-// func (repo *FileRepository) GetUsersUrls(_ context.Context, userID string) ([]entity.ShortURL, error) {
+// func (repo *FileRepository) GetUsersUrls(_ context.Context, userID string) ([]entity.ExpandedURL, error) {
 // 	repo.mutex.RLock()
 // 	defer repo.mutex.RUnlock()
 
@@ -199,8 +199,8 @@ func (repo *FileRepository) Check(_ context.Context) error {
 // 		return nil, err
 // 	}
 
-// 	var entry entity.ShortURL
-// 	var URLs []entity.ShortURL
+// 	var entry entity.ExpandedURL
+// 	var URLs []entity.ExpandedURL
 
 // 	scanner := bufio.NewScanner(repo.file)
 
@@ -222,7 +222,7 @@ func (repo *FileRepository) Check(_ context.Context) error {
 // }
 
 // // DeleteUrls deletes all given urls.
-// func (repo *FileRepository) DeleteUrls(_ context.Context, urls []entity.ShortURL) error {
+// func (repo *FileRepository) DeleteUrls(_ context.Context, urls []entity.ExpandedURL) error {
 // 	repo.mutex.Lock()
 // 	defer repo.mutex.Unlock()
 
@@ -258,7 +258,7 @@ func (repo *FileRepository) Check(_ context.Context) error {
 // 	uniqueUsersIds := make(map[string]bool)
 // 	urlsCount := 0
 
-// 	var entry entity.ShortURL
+// 	var entry entity.ExpandedURL
 // 	scanner := bufio.NewScanner(repo.file)
 
 // 	for scanner.Scan() {

@@ -84,7 +84,7 @@ func checkTab(log *slog.Logger, repo *PostgresRepo) error {
 	return nil
 }
 
-func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ShortURL) error {
+func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ExpandedURL) error {
 	const op = "repository.pg.Save" // Имя текущей функции для логов и ошибок
 	url := shortURL.OriginalURL
 	alias := shortURL.ID
@@ -114,7 +114,7 @@ func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ShortURL) er
 				// Возвращаем пользовательскую ошибку с найденным ID
 				return &storage.NotUniqueURLError{
 					Err: nil,
-					ShortURL: entity.ShortURL{
+					ShortURL: entity.ExpandedURL{
 						OriginalURL: url,
 						ID:          existingID,
 					},
@@ -129,9 +129,7 @@ func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ShortURL) er
 	return nil
 }
 
-// Образец от G
-// func BulkInsertShortURLs(ctx context.Context, db *sql.DB, urls []ShortURL) error {
-func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []entity.ShortURL) error {
+func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []entity.ExpandedURL) error {
 	// 1. Начинаем транзакцию с контекстом
 	// Это гарантирует, что все операции COPY выполняются в рамках одного соединения.
 	tx, err := repo.DB.BeginTx(ctx, nil)
@@ -179,8 +177,8 @@ func (repo *PostgresRepo) Check(ctx context.Context) error {
 	return repo.DB.PingContext(ctx)
 }
 
-func (repo *PostgresRepo) FindByID(ctx context.Context, id string) (entity.ShortURL, error) {
-	var ent entity.ShortURL
+func (repo *PostgresRepo) FindByID(ctx context.Context, id string) (entity.ExpandedURL, error) {
+	var ent entity.ExpandedURL
 	err := repo.DB.QueryRowContext(
 		ctx,
 		"select url, id from aliases where id=$1",
