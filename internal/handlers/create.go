@@ -50,7 +50,7 @@ func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Так как анмарщаллинг происходит в entity.ExpandedURL (ex. ShortURL),
+	// Так как анмарщаллинг происходит с данными в entity.ExpandedURL (ex. ShortURL),
 	// то структурный тег поля OriginalURL в entity.ExpandedURL ("url")
 	// должен совпадать с ключем "url" запроса, иначе будет "url required"
 	if v.OriginalURL == "" {
@@ -60,6 +60,9 @@ func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 
 	//userID := h.getUserID(r)
 
+	// Если нет ошибок и значение url уникально, то err == nil
+	// Если url не уникален, то
+	// err == entity.ShortURL{OriginalURL: url, ID:urlID},  &shorteningError{Err:err, ShortURL: shortURL}
 	shortURL, err := h.service.Shorten(r.Context(), v.OriginalURL)
 
 	// Iter13 генерация нужного ответа - 409

@@ -3,9 +3,11 @@ package pg
 import (
 	"app/internal/config"
 	"app/internal/entity"
+	"app/internal/storage"
 	"app/internal/usecase/logger/sl"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -61,8 +63,8 @@ func checkTab(log *slog.Logger, repo *PostgresRepo) error {
 
 	stmt, err := repo.DB.Prepare(`
 	CREATE TABLE IF NOT EXISTS aliases(
-        alias VARCHAR NOT NULL UNIQUE,
-        url TEXT NOT NULL,
+        id VARCHAR NOT NULL UNIQUE,
+        url TEXT NOT NULL UNIQUE,
 		correlation_id VARCHAR);
 	`)
 
@@ -86,7 +88,7 @@ func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ShortURL) er
 	const op = "repository.pg.Save" // Имя текущей функции для логов и ошибок
 	url := shortURL.OriginalURL
 	alias := shortURL.ID
-	stmt, err := repo.DB.Prepare("INSERT INTO aliases(alias, url) VALUES($1, $2)")
+	stmt, err := repo.DB.Prepare("INSERT INTO aliases(id, url) VALUES($1, $2)")
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -94,7 +96,34 @@ func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ShortURL) er
 	_, err = stmt.Exec(alias, url)
 
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		// iter13. Проверка на уникальность
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			// Проверяем код ошибки. duplicate key value- "23505" (pgerrcode.UniqueViolation)
+			if pqErr.Code == "23505" {
+				// Конфликт уникальности. Делаем дополнительный SELECT
+				var existingID string
+				selectStatement := `SELECT id FROM aliases WHERE url = $1`
+				errSelect := repo.DB.QueryRow(selectStatement, url).Scan(&existingID)
+
+				if errSelect != nil {
+					// Если SELECT тоже не сработал, возвращаем ошибку SELECT
+					return fmt.Errorf("ошибка при получении существующего ID: %w", errSelect)
+				}
+
+				// Возвращаем пользовательскую ошибку с найденным ID
+				return &storage.NotUniqueURLError{
+					Err: nil,
+					ShortURL: entity.ShortURL{
+						OriginalURL: url,
+						ID:          existingID,
+					},
+				}
+				// return fmt.Errorf("%s: %w", "23505", err)
+			}
+		}
+		// Другая ошибка БД
+		return fmt.Errorf("ошибка базы данных: %w", err)
 	}
 
 	return nil
@@ -113,9 +142,9 @@ func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []entity.ShortURL
 
 	// 2. Подготавливаем операцию COPY IN
 	// Указываем имя таблицы и список столбцов в целевой таблице БД.
-	// Таблица называется 'short_urls' с соответствующими столбцами.
-	stmt, err := tx.PrepareContext(ctx, pq.CopyIn("aliases", "alias", "url", "correlation_id"))
-	//stmt, err := repo.DB.PrepareContext(ctx, pq.CopyIn("aliases", "alias", "url", "correlation_id"))
+	// Таблица называется 'aliases' с соответствующими столбцами.
+	stmt, err := tx.PrepareContext(ctx, pq.CopyIn("aliases", "id", "url", "correlation_id"))
+	//stmt, err := repo.DB.PrepareContext(ctx, pq.CopyIn("aliases", "id", "url", "correlation_id"))
 	if err != nil {
 		return fmt.Errorf("failed to prepare COPY statement: %w", err)
 	}
@@ -154,7 +183,7 @@ func (repo *PostgresRepo) FindByID(ctx context.Context, id string) (entity.Short
 	var ent entity.ShortURL
 	err := repo.DB.QueryRowContext(
 		ctx,
-		"select url, alias from aliases where alias=$1",
+		"select url, id from aliases where id=$1",
 		id,
 	).Scan(&ent.OriginalURL, &ent.ID)
 	return ent, err
