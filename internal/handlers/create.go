@@ -62,11 +62,12 @@ func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 
 	shortURL, err := h.service.Shorten(r.Context(), v.OriginalURL)
 
-	// var notUniqueErr *storage.NotUniqueURLError
-	// if errors.As(err, &notUniqueErr) {
-	// 	apiPublicationResult(w, h, shortURL, http.StatusConflict)
-	// 	return
-	// }
+	// Iter13 генерация нужного ответа - 409
+	var notUniqueErr *storage.NotUniqueURLError
+	if errors.As(err, &notUniqueErr) {
+		apiPublicationResult(w, h, shortURL, http.StatusConflict)
+		return
+	}
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
