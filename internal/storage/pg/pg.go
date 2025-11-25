@@ -84,6 +84,40 @@ func checkTab(log *slog.Logger, repo *PostgresRepo) error {
 	return nil
 }
 
+// Stub function
+func (repo *PostgresRepo) GetUsersUrls(ctx context.Context, userID string) ([]entity.ExpandedURL, error) {
+	var URLs []entity.ExpandedURL
+
+	// rows, err := repo.conn.Query(
+	// 	ctx,
+	// 	"select original_url, id, created_by, correlation_id, deleted_at from urls where created_by=$1",
+	// 	userID)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// defer rows.Close()
+
+	// for rows.Next() {
+	// 	model := entity.ExpandedURL{}
+	// 	var deletedAt pgtype.Timestamp
+	// 	var correlationID pgtype.Text
+	// 	if err = rows.Scan(&model.OriginalURL, &model.ID, &model.CreatedByID, &correlationID, &deletedAt); err != nil {
+	// 		return nil, err
+	// 	}
+	// 	model.DeletedAt = deletedAt.Time
+	// 	model.CorrelationID = correlationID.String
+	// 	URLs = append(URLs, model)
+	// }
+
+	// if rows.Err() != nil {
+	// 	return nil, rows.Err()
+	// }
+
+	return URLs, nil
+
+}
+
 // Save проверяет уникальность URL-адреса и сохраняет его
 func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ExpandedURL) error {
 	const op = "repository.pg.Save" // Имя текущей функции для логов и ошибок

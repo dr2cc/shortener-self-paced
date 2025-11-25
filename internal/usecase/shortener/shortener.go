@@ -5,6 +5,7 @@ import (
 	"app/internal/config"
 	"app/internal/entity"
 	"app/internal/storage"
+	"app/internal/usecase/generator"
 	"app/internal/usecase/random"
 	"context"
 	"errors"
@@ -30,7 +31,8 @@ type Shortener struct {
 	Random     random.Stringer
 	repository storage.Repository
 	config     *config.Config
-	//generator  generator.URLGenerator
+	// iter14
+	generator generator.Generator
 }
 
 // New создает службу сокращения URL
@@ -41,6 +43,18 @@ func New(rand random.Stringer, repo storage.Repository, conf *config.Config) *Sh
 		config:     conf,
 		//generator:  generator,
 	}
+}
+
+// GetUrlsCreatedBy returns array of all urs that was shortened by given userID.
+// It's just a wrapper for repository.GetUsersUrls.
+func (sh *Shortener) GetUrlsCreatedBy(ctx context.Context, userID string) ([]entity.ExpandedURL, error) {
+	return sh.repository.GetUsersUrls(ctx, userID)
+}
+
+// GenerateNewUserID generates new user id.
+// It's just a wrapper for random.GenerateNewUserID().
+func (service *Shortener) GenerateNewUserID() string {
+	return service.generator.GenerateNewUserID()
 }
 
 // ShortenBatch сокращает массив значений []entity.ExpandedURL

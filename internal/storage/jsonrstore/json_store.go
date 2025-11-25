@@ -36,6 +36,34 @@ func NewFileRepository(filePath string) (*FileRepository, error) {
 	}, nil
 }
 
+// GetUsersUrls считывает файл построчно и возвращает все URL-адреса,
+// созданные пользователем с идентификатором userID.
+func (repo *FileRepository) GetUsersUrls(_ context.Context, userID string) ([]entity.ExpandedURL, error) {
+	repo.mutex.RLock()
+	defer repo.mutex.RUnlock()
+
+	if _, err := repo.file.Seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
+
+	var entry entity.ExpandedURL
+	var URLs []entity.ExpandedURL
+
+	scanner := bufio.NewScanner(repo.file)
+
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if err := json.NewDecoder(bytes.NewReader(line)).Decode(&entry); err != nil {
+			return nil, err
+		}
+		if entry.CreatedByID == userID {
+			URLs = append(URLs, entry)
+		}
+	}
+
+	return URLs, nil
+}
+
 // SaveBatch сохраняет несколько URL-адресов.
 // Проверяет уникальность URL-адресов и сохраняет их.
 func (repo *FileRepository) SaveBatch(ctx context.Context, batch []entity.ExpandedURL) error {

@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"app/internal/config"
+	coding "app/internal/usecase/crypto"
 	mwLogger "app/internal/usecase/middleware/logger"
 	services "app/internal/usecase/shortener"
 	"compress/flate"
@@ -16,9 +17,9 @@ import (
 )
 
 type Handler struct {
-	Mux     *chi.Mux            // маршрутизатор, который мы будем использовать для обработки запросов
-	service *services.Shortener // сервис, который содержит бизнес-логику, хранилище, конфигурацию
-	// crypto
+	Mux     *chi.Mux             // маршрутизатор, который мы будем использовать для обработки запросов
+	service *services.Shortener  // сервис, который содержит бизнес-логику, хранилище, конфигурацию
+	crypto  coding.Cryptographer // интерфейс, который мы будем использовать для шифрования и дешифрования значений
 }
 
 // NewHandler создает новый экземпляр структуры Handler, инициализирует chi мультиплексор,
@@ -69,24 +70,24 @@ func NewRouter(service *services.Shortener, cfg *config.Config, log *slog.Logger
 	// принимающий в теле запроса множество URL для сокращения в формате:
 	router.Post("/api/shorten/batch", h.BatchShortenAPI)
 
-	// //************************************************************************************
-	// // iter14
-	// // 	Добавьте в сервис функциональность аутентификации пользователя.
-	// // Сервис должен:
-	// // ◽ Выдавать пользователю симметрично подписанную куку, содержащую уникальный идентификатор пользователя,
-	// // если такой куки не существует или она не проходит проверку подлинности.
+	//************************************************************************************
+	// iter14
+	// 	Добавьте в сервис функциональность аутентификации пользователя.
+	// Сервис должен:
+	// ◽ Выдавать пользователю симметрично подписанную куку, содержащую уникальный идентификатор пользователя,
+	// если такой куки не существует или она не проходит проверку подлинности.
 
-	// // ◽ Иметь хендлер GET /api/user/urls,
-	// // который сможет вернуть пользователю все когда-либо сокращённые им URL в формате:
-	// // [
-	// //     {
-	// //         "short_url": "http://...",
-	// //         "original_url": "http://..."
-	// //     },
-	// //     ...
-	// // ]
-	// router.Get("/api/user/urls", h.UserURLs)
-	// //
+	// ◽ Иметь хендлер GET /api/user/urls,
+	// который сможет вернуть пользователю все когда-либо сокращённые им URL в формате:
+	// [
+	//     {
+	//         "short_url": "http://...",
+	//         "original_url": "http://..."
+	//     },
+	//     ...
+	// ]
+	router.Get("/api/user/urls", h.UserURLs)
+	//
 
 	return router
 }
@@ -100,7 +101,7 @@ func getDecompressedReader(r *http.Request) (io.Reader, error) {
 	return r.Body, nil
 }
 
-// Ping is a health check endpoint.
+// health check endpoint слишком прост, чтобы выделять ему отдельный файл
 func (h *Handler) Ping(w http.ResponseWriter, r *http.Request) {
 	err := h.service.HealthCheck(r.Context())
 	if err != nil {

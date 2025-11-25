@@ -22,6 +22,20 @@ func NewInMemoryRepository() *InMemoryRepository {
 	}
 }
 
+// iter14
+// GetUsersUrls получает все URL-адреса, созданные пользователем с указанным идентификатором.
+func (repo *InMemoryRepository) GetUsersUrls(_ context.Context, userID string) ([]entity.ExpandedURL, error) {
+	repo.mutex.RLock()
+	var URLs []entity.ExpandedURL
+	for _, URL := range repo.storage {
+		if URL.CreatedByID == userID {
+			URLs = append(URLs, URL)
+		}
+	}
+	repo.mutex.RUnlock()
+	return URLs, nil
+}
+
 // SaveBatch сохраняет несколько URL-адресов.
 // Проверяет уникальность URL-адресов и сохраняет их.
 func (repo *InMemoryRepository) SaveBatch(_ context.Context, batch []entity.ExpandedURL) error {
