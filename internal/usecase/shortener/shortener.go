@@ -77,7 +77,7 @@ func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ExpandedUR
 }
 
 // Shorten сокращает полный URL и возвращает заполненную структуру ShortURL
-func (sh *Shortener) Shorten(ctx context.Context, url string) (entity.ExpandedURL, error) {
+func (sh *Shortener) Shorten(ctx context.Context, url string, userID string) (entity.ExpandedURL, error) {
 	urlID, err := sh.Random.GenerateIDfromString(url)
 	if err != nil {
 		return entity.ExpandedURL{}, err
@@ -86,7 +86,7 @@ func (sh *Shortener) Shorten(ctx context.Context, url string) (entity.ExpandedUR
 	shortURL := entity.ExpandedURL{
 		OriginalURL: url,
 		ID:          urlID,
-		// CreatedByID: userID,
+		CreatedByID: userID,
 	}
 
 	// Пробуем записать в хранилище, с проверкой уникальности (iter13)
