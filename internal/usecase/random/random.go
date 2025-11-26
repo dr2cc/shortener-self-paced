@@ -8,12 +8,12 @@ import (
 )
 
 // ex. URLGenerator, поведение (метод)- GenerateIDfromString
-type Stringer interface {
+type IDGenerator interface {
 	GenerateIDfromString(url string) (string, error)
 }
 
 // RandomStringGenerator реализует метод GenerateIDfromString
-// интерфейса Stringer
+// интерфейса IDGenerator
 type RandomStringGenerator struct{}
 
 // GenerateIDfromString создает ID (shortURL) из url.

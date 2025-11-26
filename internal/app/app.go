@@ -42,7 +42,7 @@ func Run(cfg *config.Config) {
 	// Use-Case🧹🏦
 	// Считаю, что здесь правильно присвоено значение
 	// структуры RandomStringGenerator (по сути поведение- метод GenerateIDfromString)
-	// а не интерфейса Stringer () (интерфейс служит границей между слоями)
+	// а не интерфейса IDGenerator () (интерфейс служит границей между слоями)
 	randomKey := random.RandomStringGenerator{}
 	// Создаем "сущность" этого сервиса
 	// TODO👀 - спросить наставника, в чем смысл такой сущности (еще глянуть в обеих чистых архитектурах)
@@ -96,7 +96,8 @@ func choosingStorage(log *slog.Logger, cfg *config.Config) storage.Repository {
 	if cfg.FilePath != "" {
 		repo, err := jsonstore.NewFileRepository(cfg.FilePath)
 		if err != nil {
-			panic(err)
+			log.Error("file (jsonstore) storage error")
+			os.Exit(1)
 		}
 		return repo
 	}

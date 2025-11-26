@@ -27,14 +27,14 @@ import (
 // у этой службы (по сути main service) - интерфейсы.
 // Предотвращение «утечек абстракции» https://habr.com/ru/articles/881918/
 type Shortener struct {
-	Random     random.Stringer
+	Random     random.IDGenerator
 	repository storage.Repository
 	config     *config.Config
 	//generator  generator.URLGenerator
 }
 
 // New создает службу сокращения URL
-func New(rand random.Stringer, repo storage.Repository, conf *config.Config) *Shortener {
+func New(rand random.IDGenerator, repo storage.Repository, conf *config.Config) *Shortener {
 	return &Shortener{
 		Random:     rand,
 		repository: repo,
