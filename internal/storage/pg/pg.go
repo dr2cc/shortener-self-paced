@@ -4,7 +4,7 @@ import (
 	"app/internal/config"
 	"app/internal/entity"
 	"app/internal/storage"
-	"app/internal/usecase/logger/sl"
+	"app/pkg/logger/sl"
 	"context"
 	"database/sql"
 	"errors"

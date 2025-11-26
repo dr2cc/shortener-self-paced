@@ -3,8 +3,8 @@ package handlers
 
 import (
 	"app/internal/config"
-	mwLogger "app/internal/usecase/middleware/logger"
 	services "app/internal/usecase/shortener"
+	mwLogger "app/pkg/middleware/logger"
 	"compress/flate"
 	"compress/gzip"
 	"io"
