@@ -116,7 +116,7 @@ func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ExpandedURL)
 	// iter13. Проверка на уникальность
 	// 3️⃣ Это ошибка pq. Проверяем код ошибки.
 	// Код ошибки "duplicate key value" or "UniqueViolation (?)"- "23505" (pgerrcode.UniqueViolation)
-	if pqErr.Code == "23505" {
+	if pqErr.Code != "23505" {
 		// "Ранний" возврат. Это другая ошибка pq (например, нарушение NOT NULL).
 		return fmt.Errorf("SQL code error %s: %w", pqErr.Code, err)
 	}
