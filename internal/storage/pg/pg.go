@@ -96,38 +96,53 @@ func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ExpandedURL)
 
 	_, err = stmt.Exec(alias, url)
 
-	if err != nil {
-		// iter13. Проверка на уникальность
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) {
-			// Проверяем код ошибки. duplicate key value- "23505" (pgerrcode.UniqueViolation)
-			if pqErr.Code == "23505" {
-				// Конфликт уникальности. Делаем дополнительный SELECT
-				var existingID string
-				selectStatement := `SELECT id FROM aliases WHERE url = $1`
-				errSelect := repo.DB.QueryRow(selectStatement, url).Scan(&existingID)
-
-				if errSelect != nil {
-					// Если SELECT тоже не сработал, возвращаем ошибку SELECT
-					return fmt.Errorf("ошибка при получении существующего ID: %w", errSelect)
-				}
-
-				// Возвращаем пользовательскую ошибку с найденным ID
-				return &storage.NotUniqueURLError{
-					Err: nil,
-					ShortURL: entity.ExpandedURL{
-						OriginalURL: url,
-						ID:          existingID,
-					},
-				}
-				// return fmt.Errorf("%s: %w", "23505", err)
-			}
-		}
-		// Другая ошибка БД
-		return fmt.Errorf("ошибка базы данных: %w", err)
+	// // Для устранения глубокой (4️⃣ уровня) вложенности if ... else
+	// // использую паттерн ❗early return (ранний возврат)
+	// // 1️⃣ Проверяем основную ошибку выполнения INSERT
+	if err == nil {
+		// "Ранний" возврат. Успешная вставка.
+		return nil
 	}
 
-	return nil
+	var pqErr *pq.Error
+
+	// // 2️⃣ Ошибка произошла. Проверяем, является ли она ошибкой PostgreSQL.
+	// if errors.As(err, &pqErr) {
+	if !errors.As(err, &pqErr) {
+		// "Ранний" возврат. Это не ошибка pq (например, ошибка сети или таймаут).
+		return fmt.Errorf("unknown database error: %w", err)
+	}
+
+	// iter13. Проверка на уникальность
+	// 3️⃣ Это ошибка pq. Проверяем код ошибки.
+	// Код ошибки "duplicate key value" or "UniqueViolation (?)"- "23505" (pgerrcode.UniqueViolation)
+	if pqErr.Code == "23505" {
+		// "Ранний" возврат. Это другая ошибка pq (например, нарушение NOT NULL).
+		return fmt.Errorf("SQL code error %s: %w", pqErr.Code, err)
+	}
+
+	// Конфликт уникальности. Делаем дополнительный SELECT
+	var existingID string
+	selectStatement := `SELECT id FROM aliases WHERE url = $1`
+	errSelect := repo.DB.QueryRow(selectStatement, url).Scan(&existingID)
+
+	// 4️⃣ Последний "if", "освобожденный" от остальных,
+	// стал соответствовать early return, даже без изменений
+	if errSelect != nil {
+		// Если SELECT тоже не сработал, возвращаем ошибку SELECT
+		return fmt.Errorf("ошибка при получении существующего ID: %w", errSelect)
+	}
+
+	// Возвращаем пользовательскую ошибку с найденным ID
+	return &storage.NotUniqueURLError{
+		Err: nil,
+		ShortURL: entity.ExpandedURL{
+			OriginalURL: url,
+			ID:          existingID,
+		},
+	}
+
+	// return fmt.Errorf("%s: %w", "23505", err)
 }
 
 // SaveBatch сохраняет несколько URL-адресов.
