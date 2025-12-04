@@ -10,7 +10,7 @@ import (
 	jsonstore "app/internal/storage/jsonrstore"
 	"app/internal/storage/pg"
 	"app/internal/usecase/random"
-	services "app/internal/usecase/shortener"
+	service "app/internal/usecase/shortener"
 	"app/pkg/logger/sl"
 	"context"
 	"fmt"
@@ -53,7 +53,7 @@ func Run(cfg *config.Config) {
 	// а не напрямую (разделение слоев?)
 	// Нет! Это и есть:
 	// 2️⃣ Use case (BL)!
-	services := services.New(randomKey, repository, cfg)
+	services := service.New(randomKey, repository, cfg)
 	// |
 	// ↓
 	// 1️⃣ Handler (PL)
