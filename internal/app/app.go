@@ -10,7 +10,7 @@ import (
 	jsonstore "app/internal/storage/jsonrstore"
 	"app/internal/storage/pg"
 	"app/internal/usecase/random"
-	services "app/internal/usecase/shortener"
+	service "app/internal/usecase/shortener"
 	"app/pkg/logger/sl"
 	"context"
 	"fmt"
@@ -39,7 +39,7 @@ func Run(cfg *config.Config) {
 	//
 	// 3️⃣ Repository🧹🏦 (DAL)
 	// Создаем объект хранилища, в соответствии с настройками
-	repo := choosingStorage(log, cfg)
+	repository := choosingStorage(log, cfg)
 	// | внедряем в бизнес-логику
 	// ↓
 	// Use-Case🧹🏦
@@ -53,11 +53,11 @@ func Run(cfg *config.Config) {
 	// а не напрямую (разделение слоев?)
 	// Нет! Это и есть:
 	// 2️⃣ Use case (BL)!
-	service := services.New(randomKey, repo, cfg)
+	services := service.New(randomKey, repository, cfg)
 	// |
 	// ↓
 	// 1️⃣ Handler (PL)
-	router := handlers.NewRouter(service, cfg, log)
+	router := handlers.NewRouter(services, cfg, log)
 
 	// HTTP Server🧹🏦
 	restAPIserver, err := server.New(cfg, router)
