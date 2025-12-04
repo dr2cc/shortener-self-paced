@@ -2,7 +2,7 @@ package handlers_test
 
 import (
 	"app/internal/config"
-	handlers "app/internal/handlers"
+	handlers "app/internal/handler"
 	services "app/internal/usecase/shortener"
 	"net/http"
 	"testing"
