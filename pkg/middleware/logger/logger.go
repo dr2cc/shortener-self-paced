@@ -16,7 +16,7 @@ func New(log *slog.Logger) func(next http.Handler) http.Handler {
 
 		log.Info("logger middleware enabled")
 
-		// код самого обработчика
+		// код обработчика
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			// собираем исходную информацию о запросе
 			entry := log.With(

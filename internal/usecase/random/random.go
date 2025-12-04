@@ -1,27 +1,52 @@
 package random
 
 import (
-	"math/rand"
-	"time"
+	"encoding/binary"
+	"errors"
+	"hash/fnv"
+	"math/big"
 )
 
-// TODO: move to config if needed
-const keyLength = 6
+// ex. URLGenerator, поведение (метод)- GenerateIDfromString
+type IDGenerator interface {
+	GenerateIDfromString(url string) (string, error)
+}
 
-type RandomGenerator struct{}
+// RandomStringGenerator реализует метод GenerateIDfromString
+// интерфейса IDGenerator
+type RandomStringGenerator struct{}
 
-// NewRandomString generates random string with given size.
-func (g *RandomGenerator) NewRandomString() string {
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-		"abcdefghijklmnopqrstuvwxyz" +
-		"0123456789")
-
-	b := make([]rune, keyLength)
-	for i := range b {
-		b[i] = chars[rnd.Intn(len(chars))]
+// GenerateIDfromString создает ID (shortURL) из url.
+func (RandomStringGenerator) GenerateIDfromString(str string) (string, error) {
+	if str == "" {
+		return "", errors.New("empty string to generate id from")
 	}
 
-	return string(b)
+	hash, err := hashURL(str)
+	if err != nil {
+		return "", err
+	}
+
+	result := stringFromHash(hash)
+	return result, nil
+}
+
+// hashURL принимает строку и возвращает 32-битный хеш этой строки
+func hashURL(url string) (uint32, error) {
+	hash := fnv.New32a()
+	if _, err := hash.Write([]byte(url)); err != nil {
+		return 0, err
+	}
+	return hash.Sum32(), nil
+}
+
+// (ex. toBase62) преобразует uint32 в строку
+func stringFromHash(id uint32) string {
+	var i big.Int
+	size := 8
+	bytes := make([]byte, size)
+	binary.LittleEndian.PutUint32(bytes, id)
+	i.SetBytes(bytes)
+	base := 62
+	return i.Text(base)
 }

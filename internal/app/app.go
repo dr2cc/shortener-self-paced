@@ -1,13 +1,17 @@
+// Package app configures and runs application.
 package app
 
 import (
 	"app/internal/config"
-	handlers "app/internal/controller/rest"
-	storage "app/internal/repository"
+	"app/internal/handlers"
 	"app/internal/server"
-	"app/internal/usecase/logger/sl"
+	"app/internal/storage"
+	"app/internal/storage/cache"
+	jsonstore "app/internal/storage/jsonrstore"
+	"app/internal/storage/pg"
 	"app/internal/usecase/random"
 	services "app/internal/usecase/shortener"
+	"app/pkg/logger/sl"
 	"context"
 	"fmt"
 	"log/slog"
@@ -24,29 +28,39 @@ const (
 	envProd  = "prod"
 )
 
-// Run creates objects (via constructors!)
+// Run создает объекты (через конструкторы!)
 func Run(cfg *config.Config) {
+	// Создаем объект логгера
 	log := setupLogger(cfg.Env)
 	log.Info("init server", slog.String("address", cfg.ServerAddress))
 	log.Debug("logger debug mode enabled")
 
-	// Repository🧹🏦
-	repo := storage.GetRepo(log, cfg)
-	// //
-	// repo, err := pg.NewPostgresRepo(log, cfg)
-	// if err != nil {
-	// 	log.Error("failed to connect storage")
-	// 	os.Exit(1)
-	// }
-
+	// Создаем сущности слоев в обратном порядке!
+	//
+	// 3️⃣ Repository🧹🏦 (DAL)
+	// Создаем объект хранилища, в соответствии с настройками
+	repo := choosingStorage(log, cfg)
+	// | внедряем в бизнес-логику
+	// ↓
 	// Use-Case🧹🏦
-	randomKey := random.RandomGenerator{}
-	// Создаю "сущность" этого сервиса
+	// Считаю, что здесь правильно присвоено значение
+	// структуры RandomStringGenerator (по сути поведение- метод GenerateIDfromString)
+	// а не интерфейса IDGenerator () (интерфейс служит границей между слоями)
+	randomKey := random.RandomStringGenerator{}
+	// Создаем "сущность" этого сервиса
+	// В чем смысл такой сущности (еще глянуть в обеих чистых архитектурах)?
+	// По моему мнению- чтобы в любом месте проекта были доступны основные методы именно из этй сущности,
+	// а не напрямую (разделение слоев?)
+	// Нет! Это и есть:
+	// 2️⃣ Use case (BL)!
 	service := services.New(randomKey, repo, cfg)
+	// |
+	// ↓
+	// 1️⃣ Handler (PL)
+	router := handlers.NewRouter(service, cfg, log)
 
 	// HTTP Server🧹🏦
-	router := handlers.NewRouter(service, cfg, log)
-	restAPIserver, err := server.New(cfg, router) // service)
+	restAPIserver, err := server.New(cfg, router)
 	if err != nil {
 		log.Error("failed to create http server", sl.Err(err))
 		os.Exit(1)
@@ -76,6 +90,27 @@ func Run(cfg *config.Config) {
 	// } else {
 	// 	log.Info("the storage was closed")
 	// }
+}
+
+func choosingStorage(log *slog.Logger, cfg *config.Config) storage.Repository {
+	if cfg.DatabaseDSN != "" {
+		repo, err := pg.NewPostgresRepo(log, cfg)
+		if err != nil {
+			log.Error("failed to connect pg storage")
+			os.Exit(1)
+		}
+		return repo
+	}
+	if cfg.FilePath != "" {
+		repo, err := jsonstore.NewFileRepository(cfg.FilePath)
+		if err != nil {
+			log.Error("file (jsonstore) storage error")
+			os.Exit(1)
+		}
+		return repo
+	}
+
+	return cache.NewInMemoryRepository()
 }
 
 func runServer(ctx context.Context, wg *sync.WaitGroup, server server.Server, servName string, log *slog.Logger) {

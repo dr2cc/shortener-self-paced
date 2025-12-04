@@ -14,7 +14,7 @@ type HTTP struct {
 	server *http.Server
 }
 
-// Run starts http server.
+// Run запускает http server.
 func (s *HTTP) Run() error {
 	return s.server.ListenAndServe()
 }
@@ -23,7 +23,6 @@ func (s *HTTP) Shutdown() error {
 	return s.server.Shutdown(context.Background())
 }
 
-// func NewHTTP(config *config.Config, ipChecker services.IPCheckerInterface, service *services.Shortener) (Server, error) {
 func NewHTTP(config *config.Config, router chi.Router) (Server, error) {
 	httpServer := &http.Server{
 		Addr: config.ServerAddress,
