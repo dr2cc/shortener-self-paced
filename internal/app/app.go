@@ -35,23 +35,31 @@ func Run(cfg *config.Config) {
 	log.Info("init server", slog.String("address", cfg.ServerAddress))
 	log.Debug("logger debug mode enabled")
 
-	// Repository🧹🏦
+	// Создаем сущности слоев в обратном порядке!
+	//
+	// 3️⃣ Repository🧹🏦 (DAL)
 	// Создаем объект хранилища, в соответствии с настройками
 	repo := choosingStorage(log, cfg)
-
+	// | внедряем в бизнес-логику
+	// ↓
 	// Use-Case🧹🏦
 	// Считаю, что здесь правильно присвоено значение
 	// структуры RandomStringGenerator (по сути поведение- метод GenerateIDfromString)
 	// а не интерфейса IDGenerator () (интерфейс служит границей между слоями)
 	randomKey := random.RandomStringGenerator{}
 	// Создаем "сущность" этого сервиса
-	// TODO👀 - спросить наставника, в чем смысл такой сущности (еще глянуть в обеих чистых архитектурах)
+	// В чем смысл такой сущности (еще глянуть в обеих чистых архитектурах)?
 	// По моему мнению- чтобы в любом месте проекта были доступны основные методы именно из этй сущности,
 	// а не напрямую (разделение слоев?)
+	// Нет! Это и есть:
+	// 2️⃣ Use case (BL)!
 	service := services.New(randomKey, repo, cfg)
+	// |
+	// ↓
+	// 1️⃣ Handler (PL)
+	router := handlers.NewRouter(service, cfg, log)
 
 	// HTTP Server🧹🏦
-	router := handlers.NewRouter(service, cfg, log)
 	restAPIserver, err := server.New(cfg, router)
 	if err != nil {
 		log.Error("failed to create http server", sl.Err(err))
