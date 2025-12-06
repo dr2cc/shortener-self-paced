@@ -206,6 +206,39 @@ func (repo *PostgresRepo) FindByID(ctx context.Context, id string) (entity.Expan
 	return ent, err
 }
 
+// GetUsersUrls returns all the urls created by a user.
+func (repo *PostgresRepo) GetUsersUrls(ctx context.Context, userID string) ([]entity.ExpandedURL, error) {
+	var URLs []entity.ExpandedURL
+
+	// rows, err := repo.conn.Query(
+	// 	ctx,
+	// 	"select original_url, id, created_by, correlation_id, deleted_at from urls where created_by=$1",
+	// 	userID)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// defer rows.Close()
+
+	// for rows.Next() {
+	// 	model := entity.ExpandedURL{}
+	// 	var deletedAt pgtype.Timestamp
+	// 	var correlationID pgtype.Text
+	// 	if err = rows.Scan(&model.OriginalURL, &model.ID, &model.CreatedByID, &correlationID, &deletedAt); err != nil {
+	// 		return nil, err
+	// 	}
+	// 	model.DeletedAt = deletedAt.Time
+	// 	model.CorrelationID = correlationID.String
+	// 	URLs = append(URLs, model)
+	// }
+
+	// if rows.Err() != nil {
+	// 	return nil, rows.Err()
+	// }
+
+	return URLs, nil
+}
+
 // Stub function
 func (repo *PostgresRepo) Close(_ context.Context) error {
 	return nil

@@ -10,4 +10,5 @@ type ExpandedURL struct {
 	OriginalURL   string `json:"url"`            // "url" - по заданию на инкремент 7, так называется ключ в JSON запросе
 	ID            string `json:"id"`             // уникальный идентификатор (alias) для OriginalURL
 	CorrelationID string `json:"correlation_id"` //используется для сопоставления исходного и сокращённого URL при пакетном сокращении
+	CreatedByID   string `json:"created_by"`     // ID of the user who created the short URL
 }

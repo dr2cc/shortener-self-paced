@@ -3,10 +3,12 @@ package handlers
 
 import (
 	"app/internal/config"
+	"app/internal/usecase/crypto"
 	services "app/internal/usecase/shortener"
 	mwLogger "app/pkg/middleware/logger"
 	"compress/flate"
 	"compress/gzip"
+	"encoding/hex"
 	"io"
 	"log/slog"
 	"net/http"
@@ -15,10 +17,12 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+const UserIDCookieName = "shortener-user-id"
+
 type Handler struct {
-	Mux     *chi.Mux            // маршрутизатор, который мы будем использовать для обработки запросов
-	service *services.Shortener // сервис, который содержит бизнес-логику, хранилище, конфигурацию
-	// crypto
+	Mux     *chi.Mux             // маршрутизатор, который мы будем использовать для обработки запросов
+	service *services.Shortener  // сервис, который содержит бизнес-логику, хранилище, конфигурацию
+	crypto  crypto.Cryptographer // interface that we'll use to encrypt and decrypt values
 }
 
 // NewHandler создает новый экземпляр структуры Handler, инициализирует chi мультиплексор,
@@ -69,24 +73,24 @@ func NewRouter(service *services.Shortener, cfg *config.Config, log *slog.Logger
 	// принимающий в теле запроса множество URL для сокращения в формате:
 	router.Post("/api/shorten/batch", h.BatchShortenAPI)
 
-	// //************************************************************************************
-	// // iter14
-	// // 	Добавьте в сервис функциональность аутентификации пользователя.
-	// // Сервис должен:
-	// // ◽ Выдавать пользователю симметрично подписанную куку, содержащую уникальный идентификатор пользователя,
-	// // если такой куки не существует или она не проходит проверку подлинности.
+	//************************************************************************************
+	// iter14
+	// 	Добавьте в сервис функциональность аутентификации пользователя.
+	// Сервис должен:
+	// ◽ Выдавать пользователю симметрично подписанную куку, содержащую уникальный идентификатор пользователя,
+	// если такой куки не существует или она не проходит проверку подлинности.
 
-	// // ◽ Иметь хендлер GET /api/user/urls,
-	// // который сможет вернуть пользователю все когда-либо сокращённые им URL в формате:
-	// // [
-	// //     {
-	// //         "short_url": "http://...",
-	// //         "original_url": "http://..."
-	// //     },
-	// //     ...
-	// // ]
-	// router.Get("/api/user/urls", h.UserURLs)
-	// //
+	// ◽ Иметь хендлер GET /api/user/urls,
+	// который сможет вернуть пользователю все когда-либо сокращённые им URL в формате:
+	// [
+	//     {
+	//         "short_url": "http://...",
+	//         "original_url": "http://..."
+	//     },
+	//     ...
+	// ]
+	router.Get("/api/user/urls", h.UserURLs)
+	//
 
 	return router
 }
@@ -106,4 +110,24 @@ func (h *Handler) Ping(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+// getUserID gets the userID from the cookie.
+func (h *Handler) getUserID(r *http.Request) string {
+	encodedCookie, err := r.Cookie(UserIDCookieName)
+	if err != nil {
+		return h.service.GenerateNewUserID()
+	}
+
+	decodedCookie, err := hex.DecodeString(encodedCookie.Value)
+	if err != nil {
+		return h.service.GenerateNewUserID()
+	}
+
+	decryptedUserID, err := h.crypto.Decrypt(decodedCookie)
+	if err != nil {
+		return h.service.GenerateNewUserID()
+	}
+
+	return string(decryptedUserID)
 }

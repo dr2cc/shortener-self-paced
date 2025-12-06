@@ -9,6 +9,7 @@ import (
 	"app/internal/storage/cache"
 	jsonstore "app/internal/storage/jsonrstore"
 	"app/internal/storage/pg"
+	"app/internal/usecase/generator"
 	"app/internal/usecase/random"
 	service "app/internal/usecase/shortener"
 	"app/pkg/logger/sl"
@@ -47,13 +48,14 @@ func Run(cfg *config.Config) {
 	// структуры RandomStringGenerator (по сути поведение- метод GenerateIDfromString)
 	// а не интерфейса IDGenerator () (интерфейс служит границей между слоями)
 	randomKey := random.RandomStringGenerator{}
-	// Создаем "сущность" этого сервиса
-	// В чем смысл такой сущности (еще глянуть в обеих чистых архитектурах)?
-	// По моему мнению- чтобы в любом месте проекта были доступны основные методы именно из этй сущности,
-	// а не напрямую (разделение слоев?)
-	// Нет! Это и есть:
+
+	gen := &generator.HashGenerator{}
+	// ❗Два рандомайзера явно излишни, но мне пока так проще.
+	// В дальнейшем нужно совместить
+	randomGenerator := &random.TrulyRandomGenerator{}
+
 	// 2️⃣ Use case (BL)!
-	services := service.New(randomKey, repository, cfg)
+	services := service.New(randomKey, repository, gen, randomGenerator, cfg)
 	// ↑
 	// |
 	// 1️⃣ Handler (PL)

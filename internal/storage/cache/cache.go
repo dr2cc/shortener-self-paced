@@ -92,6 +92,19 @@ func (repo *InMemoryRepository) Close(_ context.Context) error {
 	return nil
 }
 
+// GetUsersUrls gets all the urls that were created by the user with the given id.
+func (repo *InMemoryRepository) GetUsersUrls(_ context.Context, userID string) ([]entity.ExpandedURL, error) {
+	repo.mutex.RLock()
+	var URLs []entity.ExpandedURL
+	for _, URL := range repo.storage {
+		if URL.CreatedByID == userID {
+			URLs = append(URLs, URL)
+		}
+	}
+	repo.mutex.RUnlock()
+	return URLs, nil
+}
+
 // Stub function
 func (repo *InMemoryRepository) Check(_ context.Context) error {
 	return nil
