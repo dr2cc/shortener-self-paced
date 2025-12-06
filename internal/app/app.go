@@ -3,7 +3,7 @@ package app
 
 import (
 	"app/internal/config"
-	"app/internal/handlers"
+	handlers "app/internal/handler"
 	"app/internal/server"
 	"app/internal/storage"
 	"app/internal/storage/cache"
