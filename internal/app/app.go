@@ -40,8 +40,8 @@ func Run(cfg *config.Config) {
 	// 3️⃣ Repository🧹🏦 (DAL)
 	// Создаем объект хранилища, в соответствии с настройками
 	repository := choosingStorage(log, cfg)
+	// ↑
 	// | внедряем в бизнес-логику
-	// ↓
 	// Use-Case🧹🏦
 	// Считаю, что здесь правильно присвоено значение
 	// структуры RandomStringGenerator (по сути поведение- метод GenerateIDfromString)
@@ -54,8 +54,8 @@ func Run(cfg *config.Config) {
 	// Нет! Это и есть:
 	// 2️⃣ Use case (BL)!
 	services := service.New(randomKey, repository, cfg)
+	// ↑
 	// |
-	// ↓
 	// 1️⃣ Handler (PL)
 	router := handlers.NewRouter(services, cfg, log)
 
