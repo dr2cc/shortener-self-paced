@@ -28,7 +28,6 @@ import (
 // у этой службы (по сути main service) - интерфейсы.
 // Предотвращение «утечек абстракции» https://habr.com/ru/articles/881918/
 type Shortener struct {
-	RandomID   random.IDGenerator
 	repository storage.Repository
 	config     *config.Config
 	generator  generator.URLGenerator
@@ -36,9 +35,8 @@ type Shortener struct {
 }
 
 // New создает службу сокращения URL
-func New(rand random.IDGenerator, repo storage.Repository, generator generator.URLGenerator, random random.Generator, conf *config.Config) *Shortener {
+func New(repo storage.Repository, generator generator.URLGenerator, random random.Generator, conf *config.Config) *Shortener {
 	return &Shortener{
-		RandomID:   rand,
 		repository: repo,
 		generator:  generator,
 		Random:     random,

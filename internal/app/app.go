@@ -48,16 +48,14 @@ func Run(cfg *config.Config) {
 	// структуры RandomStringGenerator (по сути поведение- метод GenerateIDfromString)
 	// а не интерфейса IDGenerator () (интерфейс служит границей между слоями)
 
-	// ❗Два рандомайзера (randomKey и gen) суть одинаковы и явно излишни,
-	//  Убрать randomKey
-	randomKey := random.RandomStringGenerator{}
+	// gen это рандомайзер для сокращенного URL (вероятно не только для него)
 	gen := &generator.HashGenerator{}
 	// ❗Два рандомайзера явно излишни, но мне пока так проще.
 	// В дальнейшем нужно совместить
 	randomGenerator := &random.TrulyRandomGenerator{}
 
 	// 2️⃣ Use case (BL)!
-	services := service.New(randomKey, repository, gen, randomGenerator, cfg)
+	services := service.New(repository, gen, randomGenerator, cfg)
 	// ↑
 	// |
 	// 1️⃣ Handler (PL)
