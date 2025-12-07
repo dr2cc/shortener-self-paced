@@ -104,12 +104,23 @@ func getDecompressedReader(r *http.Request) (io.Reader, error) {
 	return r.Body, nil
 }
 
-// Ping is a health check endpoint.
-func (h *Handler) Ping(w http.ResponseWriter, r *http.Request) {
-	err := h.service.HealthCheck(r.Context())
+// addEncryptedUserIDToCookie encrypts the userID and setting it as a cookie.
+func (h *Handler) addEncryptedUserIDToCookie(w *http.ResponseWriter, userID string) error {
+	encryptedUserID, err := h.crypto.Encrypt([]byte(userID))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return err
 	}
+
+	encodedCookieValue := hex.EncodeToString(encryptedUserID)
+
+	http.SetCookie(
+		*w,
+		&http.Cookie{
+			Name:  UserIDCookieName,
+			Value: encodedCookieValue,
+		},
+	)
+	return nil
 }
 
 // getUserID gets the userID from the cookie.
@@ -130,4 +141,12 @@ func (h *Handler) getUserID(r *http.Request) string {
 	}
 
 	return string(decryptedUserID)
+}
+
+// Ping is a health check endpoint.
+func (h *Handler) Ping(w http.ResponseWriter, r *http.Request) {
+	err := h.service.HealthCheck(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

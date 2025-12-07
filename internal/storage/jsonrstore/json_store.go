@@ -134,8 +134,8 @@ func (repo *FileRepository) Close(_ context.Context) error {
 	return repo.file.Close()
 }
 
-// GetUsersUrls reads the file line by line and returning all the urls
-// that were created by user with id userID.
+// GetUsersUrls считывает файл построчно и возвращает все URL-адреса,
+// созданные пользователем с идентификатором userID.
 func (repo *FileRepository) GetUsersUrls(_ context.Context, userID string) ([]entity.ExpandedURL, error) {
 	repo.mutex.RLock()
 	defer repo.mutex.RUnlock()

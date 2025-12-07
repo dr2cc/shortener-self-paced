@@ -7,7 +7,7 @@ import (
 )
 
 func (h *Handler) UserURLs(w http.ResponseWriter, r *http.Request) {
-	// Что за userID ? Метод нашего хендлера- getUserID gets the userID from the cookie.
+
 	userID := h.getUserID(r)
 
 	URLs, err := h.service.GetUrlsCreatedBy(r.Context(), userID)

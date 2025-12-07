@@ -23,7 +23,7 @@ import (
 // FormatShortURL(urlID string) string
 // }
 
-// Shortener — служба, предоставляющая бизнес-логику, хранилище, конфигурацию
+// Shortener — служба, предоставляющая бизнес-логику, хранилище, конфигурацию.
 // Все поля (кроме конфигурации)
 // у этой службы (по сути main service) - интерфейсы.
 // Предотвращение «утечек абстракции» https://habr.com/ru/articles/881918/
@@ -48,14 +48,14 @@ func New(rand random.IDGenerator, repo storage.Repository, generator generator.U
 
 // ShortenBatch сокращает массив значений []entity.ExpandedURL
 // Все записи пакета должны содержать OriginalURL.
-func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ExpandedURL) ([]entity.ExpandedURL, error) {
+func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ExpandedURL, userID string) ([]entity.ExpandedURL, error) {
 	for i, URL := range batch {
-		urlID, err := sh.RandomID.GenerateIDfromString(URL.OriginalURL)
+		urlID, err := sh.generator.GenerateIDFromString(URL.OriginalURL)
 		if err != nil {
 			return nil, err
 		}
 		batch[i].ID = urlID
-		//batch[i].CreatedByID = userID
+		batch[i].CreatedByID = userID
 	}
 
 	if err := sh.repository.SaveBatch(ctx, batch); err != nil {
@@ -67,7 +67,7 @@ func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ExpandedUR
 
 // Shorten сокращает полный URL и возвращает заполненную структуру ShortURL
 func (sh *Shortener) Shorten(ctx context.Context, url string) (entity.ExpandedURL, error) {
-	urlID, err := sh.RandomID.GenerateIDfromString(url)
+	urlID, err := sh.generator.GenerateIDFromString(url)
 	if err != nil {
 		return entity.ExpandedURL{}, err
 	}
@@ -158,6 +158,8 @@ func (sh *Shortener) GenerateNewUserID() string {
 
 // GetUrlsCreatedBy returns array of all urs that was shortened by given userID.
 // It's just a wrapper for repository.GetUsersUrls.
+// GetUrlsCreatedBy возвращает массив всех URL-адресов, сокращённых по заданному идентификатору пользователя.
+// Это только оболочка для repository.GetUsersUrls (в каждом из видов хранилищ).
 func (sh *Shortener) GetUrlsCreatedBy(ctx context.Context, userID string) ([]entity.ExpandedURL, error) {
 	return sh.repository.GetUsersUrls(ctx, userID)
 }

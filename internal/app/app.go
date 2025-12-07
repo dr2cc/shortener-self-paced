@@ -47,8 +47,10 @@ func Run(cfg *config.Config) {
 	// Считаю, что здесь правильно присвоено значение
 	// структуры RandomStringGenerator (по сути поведение- метод GenerateIDfromString)
 	// а не интерфейса IDGenerator () (интерфейс служит границей между слоями)
-	randomKey := random.RandomStringGenerator{}
 
+	// ❗Два рандомайзера (randomKey и gen) суть одинаковы и явно излишни,
+	//  Убрать randomKey
+	randomKey := random.RandomStringGenerator{}
 	gen := &generator.HashGenerator{}
 	// ❗Два рандомайзера явно излишни, но мне пока так проще.
 	// В дальнейшем нужно совместить
