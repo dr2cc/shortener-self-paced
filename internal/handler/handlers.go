@@ -4,6 +4,7 @@ package handlers
 import (
 	"app/internal/config"
 	"app/internal/usecase/crypto"
+	ipckecker "app/internal/usecase/ipchecker"
 	services "app/internal/usecase/shortener"
 	mwLogger "app/pkg/middleware/logger"
 	"compress/flate"
@@ -22,18 +23,20 @@ const UserIDCookieName = "shortener-user-id"
 type Handler struct {
 	Mux     *chi.Mux             // маршрутизатор, который мы будем использовать для обработки запросов
 	service *services.Shortener  // сервис, который содержит бизнес-логику, хранилище, конфигурацию
-	crypto  crypto.Cryptographer // interface that we'll use to encrypt and decrypt values
+	crypto  crypto.Cryptographer // интерфейс, который будет использовать для шифрования и дешифрования значений
+	log     *slog.Logger
 }
 
 // NewHandler создает новый экземпляр структуры Handler, инициализирует chi мультиплексор,
 // и выбирает службу
 // и crypto
-func NewHandler(service *services.Shortener, config *config.Config) *Handler {
-	// cryptographer := {}
+func NewHandler(service *services.Shortener, log *slog.Logger, config *config.Config) *Handler {
+	cryptographer := crypto.GCMAESCryptographer{Key: config.EncryptionKey, Random: service.Random}
 	return &Handler{
 		Mux:     chi.NewMux(),
 		service: service,
-		// crypto:  &cryptographer,
+		crypto:  &cryptographer,
+		log:     log,
 	}
 }
 
@@ -47,10 +50,8 @@ func NewRouter(service *services.Shortener, cfg *config.Config, log *slog.Logger
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.Compress(flate.BestSpeed))
 
-	h := NewHandler(service, cfg)
+	h := NewHandler(service, log, cfg)
 
-	// Получается service нужен только для работы ручек- передает в них
-	// рандомайзер (бизнес-логику), хранилище и конфигурацию
 	router.Get("/{id}", h.Redirect)
 	router.Post("/", h.ShortenText)
 	// // При простой аутентификации, можно использовать такую конструкцию:
@@ -93,6 +94,25 @@ func NewRouter(service *services.Shortener, cfg *config.Config, log *slog.Logger
 	//
 
 	return router
+}
+
+func FromTrustedSubnet(checkerInterface ipckecker.IPCheckerInterface) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fromTrustedSubnet, err := checkerInterface.IsRequestFromTrustedSubnet(r)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusForbidden)
+				return
+			}
+
+			if !fromTrustedSubnet {
+				http.Error(w, "forbidden", http.StatusForbidden)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // Если тело запроса сжато с помощью gzip, возвращает gzip reader,

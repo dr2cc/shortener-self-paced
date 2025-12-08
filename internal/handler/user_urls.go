@@ -3,13 +3,14 @@ package handlers
 import (
 	"app/pkg/responses"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 )
 
 func (h *Handler) UserURLs(w http.ResponseWriter, r *http.Request) {
 
 	userID := h.getUserID(r)
-
+	h.log.Info("user", slog.String("ID", userID))
 	URLs, err := h.service.GetUrlsCreatedBy(r.Context(), userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

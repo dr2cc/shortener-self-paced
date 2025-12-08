@@ -2,11 +2,15 @@
 package config
 
 import (
+	"app/internal/usecase/random"
+	"crypto/aes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 )
+
+const KeySize = 2 * aes.BlockSize //nolint:gomnd
 
 type Config struct {
 	Env           string `yaml:"env" env-default:"local"`
@@ -15,11 +19,17 @@ type Config struct {
 	FilePath      string `json:"file_storage_path"`
 	DatabaseDSN   string `json:"database_dsn"`
 	ConfigPath    string
+	EncryptionKey []byte
+	TrustedSubnet string `json:"trusted_subnet"`
 }
 
 // NewConfig считывает конфигурацию в такой последовательности:
 // из флагов командной строки, переменных окружения и файла конфигурации.
 func NewConfig() (*Config, error) {
+	key := []byte(os.Getenv("ENCRYPTION_KEY"))
+	if len(key) == 0 {
+		key = generateNewEncryptionKey()
+	}
 	cfg := &Config{
 		Env:           "local", // Окружение - local, dev или prod,в первую очередь для логгера
 		ServerAddress: "",
@@ -27,6 +37,8 @@ func NewConfig() (*Config, error) {
 		FilePath:      "",
 		DatabaseDSN:   "",
 		ConfigPath:    "",
+		EncryptionKey: key,
+		TrustedSubnet: "",
 	}
 
 	flag.StringVar(&cfg.ServerAddress, "a", "", "host to listen on")
@@ -58,6 +70,16 @@ func priorityLine(strings ...string) string {
 		}
 	}
 	return ""
+}
+
+// generateNewEncryptionKey generates a random key of the specified KeySize.
+func generateNewEncryptionKey() []byte {
+	randomGenerator := random.TrulyRandomGenerator{}
+	randomKey, err := randomGenerator.GenerateRandomBytes(KeySize)
+	if err != nil {
+		randomKey = make([]byte, KeySize)
+	}
+	return randomKey
 }
 
 // func priorityBool(bools ...bool) bool {

@@ -3,19 +3,15 @@ package handlers
 import (
 	"app/internal/entity"
 	"app/internal/storage"
+	"app/pkg/responses"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 )
 
-// "result" - так в ответе, по заданию  на iter7, называется ключ в JSON запросе
-type ResponseAPI struct {
-	Result string `json:"result"`
-}
-
 func apiPublicationResult(w http.ResponseWriter, h *Handler, shortURL entity.ExpandedURL, status int) {
-	res := ResponseAPI{
+	res := responses.ShorteningResult{
 		Result: h.service.FormatShortURL(shortURL.ID),
 	}
 
@@ -58,12 +54,10 @@ func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//userID := h.getUserID(r)
+	userID := h.getUserID(r)
 
 	// Если нет ошибок и значение url уникально, то err == nil
-	// Если url не уникален, то
-	// err == entity.ExpandedURL{OriginalURL: url, ID:urlID},  &shorteningError{Err:err, ShortURL: shortURL}
-	shortURL, err := h.service.Shorten(r.Context(), v.OriginalURL)
+	shortURL, err := h.service.Shorten(r.Context(), v.OriginalURL, userID)
 
 	// Iter13 генерация нужного ответа - 409
 	var notUniqueErr *storage.NotUniqueURLError
@@ -109,12 +103,10 @@ func (h *Handler) ShortenText(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// userID := h.getUserID(r)
+	userID := h.getUserID(r)
 
 	// Если нет ошибок и значение url уникально, то err == nil
-	// Если url не уникален, то
-	// err == entity.ExpandedURL{OriginalURL: url, ID:urlID},  &shorteningError{Err:err, ShortURL: shortURL}
-	shortURL, err := h.service.Shorten(r.Context(), string(url)) // , userID
+	shortURL, err := h.service.Shorten(r.Context(), string(url), userID)
 
 	// iter13. Проверка на уникальность
 	// Сама проверка в Shorten, а точнеее в методе Save (при записи в хранилище).

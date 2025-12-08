@@ -3,6 +3,7 @@ package responses
 
 // ShorteningResult is response with shortened url.
 type ShorteningResult struct {
+	// "result" - так в ответе, по заданию  на iter7, называется ключ в JSON запросе
 	Result string `json:"result"`
 }
 
