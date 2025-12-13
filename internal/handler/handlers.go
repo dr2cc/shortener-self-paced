@@ -22,9 +22,9 @@ const UserIDCookieName = "shortener-user-id"
 
 type Handler struct {
 	Mux     *chi.Mux             // маршрутизатор, который мы будем использовать для обработки запросов
-	service *services.Shortener  // сервис, который содержит бизнес-логику, хранилище, конфигурацию
+	service *services.Shortener  // сервис, который содержит бизнес-логику (generator, Random), хранилище, конфигурацию
 	crypto  crypto.Cryptographer // интерфейс, который будет использовать для шифрования и дешифрования значений
-	log     *slog.Logger
+	log     *slog.Logger         // логгер
 }
 
 // NewHandler создает новый экземпляр структуры Handler, инициализирует chi мультиплексор,
@@ -40,7 +40,7 @@ func NewHandler(service *services.Shortener, log *slog.Logger, config *config.Co
 	}
 }
 
-// NewRouter создает новый маршрутизатор, добавляет middleware, а затем добавляет маршруты
+// Конструктор NewRouter создает новый маршрутизатор, добавляет middleware, а затем добавляет маршруты
 func NewRouter(service *services.Shortener, cfg *config.Config, log *slog.Logger) chi.Router {
 	router := chi.NewRouter()
 

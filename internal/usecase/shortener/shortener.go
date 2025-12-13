@@ -34,7 +34,7 @@ type Shortener struct {
 	Random     random.Generator
 }
 
-// New создает службу сокращения URL
+// В этом конструкторе создаем службу сокращения URL
 func New(repo storage.Repository, generator generator.URLGenerator, random random.Generator, conf *config.Config) *Shortener {
 	return &Shortener{
 		repository: repo,

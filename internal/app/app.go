@@ -44,14 +44,9 @@ func Run(cfg *config.Config) {
 	// ↑
 	// | внедряем в бизнес-логику
 	// Use-Case🧹🏦
-	// Считаю, что здесь правильно присвоено значение
-	// структуры RandomStringGenerator (по сути поведение- метод GenerateIDfromString)
-	// а не интерфейса IDGenerator () (интерфейс служит границей между слоями)
-
 	// gen это рандомайзер для сокращенного URL (вероятно не только для него)
 	gen := &generator.HashGenerator{}
-	// ❗Два рандомайзера явно излишни, но мне пока так проще.
-	// В дальнейшем нужно совместить
+	//
 	randomGenerator := &random.TrulyRandomGenerator{}
 
 	// 2️⃣ Use case (BL)!
