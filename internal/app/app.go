@@ -49,12 +49,12 @@ func Run(cfg *config.Config) {
 	gen := &generator.HashGenerator{}
 	// iter14 ? Проследить как внедряется новое
 	randomGenerator := &random.TrulyRandomGenerator{}
-	// Создаем main service - Shortener
-	services := service.New(repository, gen, randomGenerator, cfg)
+	// Создаем Shortener, основной сервис приложения (the main service of the application)
+	service := service.New(repository, gen, randomGenerator, cfg)
 	// 2️⃣ Use case (BL)!
 	// ↑
 	// |
-	router := handlers.NewRouter(services, cfg, log)
+	router := handlers.NewRouter(service, cfg, log)
 	// 1️⃣ Handler (PL)
 	// ↑
 	// | слои из Three-layered architecture (N-tier architecture)
