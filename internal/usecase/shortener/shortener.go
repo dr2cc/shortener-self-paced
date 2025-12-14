@@ -23,9 +23,18 @@ import (
 // FormatShortURL(urlID string) string
 // }
 
-// Shortener — служба, предоставляющая бизнес-логику, хранилище, конфигурацию.
-// Все поля (кроме конфигурации) у этой службы (по сути main service) - интерфейсы.
-// Предотвращение «утечек абстракции» https://habr.com/ru/articles/881918/
+// Shortener — служба, предоставляющая хранилище, бизнес-логику, конфигурацию.
+// Обращается она к хранилищу и бизнес-логике исключительно через интерфейсы.
+// Это соответствует подходу, в котором "внешний мир" для usecase
+//
+//	— это всего лишь набор интерфейсов,
+//
+// которые оперируют сущностями из слоя domain и не имеют никаких деталей о том,
+// кто и как реализует эти интерфейсы.
+// Задача usecase связать поведение бизнес-логики и "внешний мир".
+// Usecase сосредоточен на выполнении одной конкретной задачи,
+// обеспечивая высокую изоляцию и строгое соблюдение принципа единственной ответственности.
+// https://habr.com/ru/articles/881918/
 type Shortener struct {
 	repository storage.Repository
 	generator  generator.URLGenerator
@@ -33,7 +42,7 @@ type Shortener struct {
 	config     *config.Config
 }
 
-// В этом конструкторе создаем службу сокращения URL
+// В этом конструкторе создаем службу сокращения URL - Shortener
 func New(repo storage.Repository, generator generator.URLGenerator, random random.Generator, conf *config.Config) *Shortener {
 	return &Shortener{
 		repository: repo,
@@ -43,7 +52,7 @@ func New(repo storage.Repository, generator generator.URLGenerator, random rando
 	}
 }
 
-// ShortenBatch сокращает массив значений []entity.ExpandedURL
+// ShortenBatch сокращает массив значений типа []entity.ExpandedURL
 // Все записи пакета должны содержать OriginalURL.
 func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ExpandedURL, userID string) ([]entity.ExpandedURL, error) {
 	for i, URL := range batch {

@@ -49,6 +49,7 @@ func Run(cfg *config.Config) {
 	gen := &generator.HashGenerator{}
 	// iter14 ? Проследить как внедряется новое
 	randomGenerator := &random.TrulyRandomGenerator{}
+	// Создаем main service - Shortener
 	services := service.New(repository, gen, randomGenerator, cfg)
 	// 2️⃣ Use case (BL)!
 	// ↑
