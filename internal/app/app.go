@@ -29,7 +29,7 @@ const (
 	envProd  = "prod"
 )
 
-// Run создает объекты (через конструкторы!)
+// Run создает сущности (через конструкторы!)
 func Run(cfg *config.Config) {
 	// Создаем объект логгера
 	log := setupLogger(cfg.Env)
@@ -37,24 +37,26 @@ func Run(cfg *config.Config) {
 	log.Debug("logger debug mode enabled")
 
 	// Создаем сущности слоев в обратном порядке!
-	//
-	// 3️⃣ Repository🧹🏦 (DAL)
+
 	// Создаем объект хранилища, в соответствии с настройками
 	repository := choosingStorage(log, cfg)
+	// 3️⃣ Repository🧹🏦 (DAL)
 	// ↑
-	// | внедряем в бизнес-логику
-	// Use-Case🧹🏦
-	// gen это рандомайзер для сокращенного URL (вероятно не только для него)
+	// | Use-Case🧹🏦
+	// gen это рандомайзер для сокращения URL
+	// HashGenerator реализует метод GenerateIDFromString
+	// создающий ID (shortURL) из url
 	gen := &generator.HashGenerator{}
-	//
+	// iter14 ? Проследить как внедряется новое
 	randomGenerator := &random.TrulyRandomGenerator{}
-
-	// 2️⃣ Use case (BL)!
 	services := service.New(repository, gen, randomGenerator, cfg)
+	// 2️⃣ Use case (BL)!
 	// ↑
 	// |
-	// 1️⃣ Handler (PL)
 	router := handlers.NewRouter(services, cfg, log)
+	// 1️⃣ Handler (PL)
+	// ↑
+	// | слои из Three-layered architecture (N-tier architecture)
 
 	// HTTP Server🧹🏦
 	restAPIserver, err := server.New(cfg, router)

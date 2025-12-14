@@ -8,7 +8,7 @@ import (
 )
 
 // HashGenerator реализует метод GenerateIDFromString
-// интерфейса (generator)generator.URLGenerator
+// интерфейса generator.URLGenerator
 type HashGenerator struct{}
 
 // GenerateIDFromString создает ID (shortURL) из url.

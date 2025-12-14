@@ -24,14 +24,13 @@ import (
 // }
 
 // Shortener — служба, предоставляющая бизнес-логику, хранилище, конфигурацию.
-// Все поля (кроме конфигурации)
-// у этой службы (по сути main service) - интерфейсы.
+// Все поля (кроме конфигурации) у этой службы (по сути main service) - интерфейсы.
 // Предотвращение «утечек абстракции» https://habr.com/ru/articles/881918/
 type Shortener struct {
 	repository storage.Repository
-	config     *config.Config
 	generator  generator.URLGenerator
 	Random     random.Generator
+	config     *config.Config
 }
 
 // В этом конструкторе создаем службу сокращения URL
