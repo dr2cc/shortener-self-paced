@@ -5,13 +5,13 @@ import (
 	"app/internal/config"
 	handlers "app/internal/handler"
 	"app/internal/server"
+	"app/internal/services"
 	"app/internal/storage"
 	"app/internal/storage/cache"
 	jsonstore "app/internal/storage/jsonrstore"
 	"app/internal/storage/pg"
 	"app/internal/usecase/generator"
 	"app/internal/usecase/random"
-	service "app/internal/usecase/shortener"
 	"app/pkg/logger/sl"
 	"context"
 	"fmt"
@@ -50,7 +50,7 @@ func Run(cfg *config.Config) {
 	// iter14 ? Проследить как внедряется новое
 	randomGenerator := &random.TrulyRandomGenerator{}
 	// Создаем Shortener, основной сервис приложения (the main service of the application)
-	service := service.New(repository, gen, randomGenerator, cfg)
+	service := services.New(repository, gen, randomGenerator, cfg)
 	// 2️⃣ Use case (BL)!
 	// ↑
 	// |
