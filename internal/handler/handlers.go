@@ -4,7 +4,6 @@ package handlers
 import (
 	"app/internal/config"
 	"app/internal/usecase/crypto"
-	ipckecker "app/internal/usecase/ipchecker"
 	services "app/internal/usecase/shortener"
 	mwLogger "app/pkg/middleware/logger"
 	"compress/flate"
@@ -94,25 +93,6 @@ func NewRouter(service *services.Shortener, cfg *config.Config, log *slog.Logger
 	//
 
 	return router
-}
-
-func FromTrustedSubnet(checkerInterface ipckecker.IPCheckerInterface) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fromTrustedSubnet, err := checkerInterface.IsRequestFromTrustedSubnet(r)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusForbidden)
-				return
-			}
-
-			if !fromTrustedSubnet {
-				http.Error(w, "forbidden", http.StatusForbidden)
-				return
-			}
-
-			next.ServeHTTP(w, r)
-		})
-	}
 }
 
 // Если тело запроса сжато с помощью gzip, возвращает gzip reader,
