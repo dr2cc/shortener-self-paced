@@ -3,7 +3,7 @@ package handlers
 
 import (
 	"app/internal/config"
-	services "app/internal/services"
+	service "app/internal/service"
 	"app/internal/usecase/crypto"
 	mwLogger "app/pkg/middleware/logger"
 	"compress/flate"
@@ -21,7 +21,7 @@ const UserIDCookieName = "shortener-user-id"
 
 type Handler struct {
 	Mux     *chi.Mux             // маршрутизатор, который мы будем использовать для обработки запросов
-	service *services.Shortener  // сервис, который содержит бизнес-логику (generator, Random), хранилище, конфигурацию
+	service *service.Shortener   // сервис, который содержит бизнес-логику (generator, Random), хранилище, конфигурацию
 	crypto  crypto.Cryptographer // интерфейс, который будет использовать для шифрования и дешифрования значений
 	log     *slog.Logger         // логгер
 }
@@ -29,7 +29,7 @@ type Handler struct {
 // NewHandler создает новый экземпляр структуры Handler, инициализирует chi мультиплексор,
 // и выбирает службу
 // и crypto
-func NewHandler(service *services.Shortener, log *slog.Logger, config *config.Config) *Handler {
+func NewHandler(service *service.Shortener, log *slog.Logger, config *config.Config) *Handler {
 	cryptographer := crypto.GCMAESCryptographer{Key: config.EncryptionKey, Random: service.Random}
 	return &Handler{
 		Mux:     chi.NewMux(),
@@ -40,7 +40,7 @@ func NewHandler(service *services.Shortener, log *slog.Logger, config *config.Co
 }
 
 // Конструктор NewRouter создает новый маршрутизатор, добавляет middleware, а затем добавляет маршруты
-func NewRouter(service *services.Shortener, cfg *config.Config, log *slog.Logger) chi.Router {
+func NewRouter(service *service.Shortener, cfg *config.Config, log *slog.Logger) chi.Router {
 	router := chi.NewRouter()
 
 	router.Use(middleware.RequestID)

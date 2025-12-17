@@ -1,5 +1,5 @@
 // The services package contains the core business logic of the application.
-package services
+package service
 
 import (
 	"app/internal/config"
