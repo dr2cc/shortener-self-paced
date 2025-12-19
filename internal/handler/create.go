@@ -12,7 +12,7 @@ import (
 
 func apiPublicationResult(w http.ResponseWriter, h *Handler, shortURL entity.ExpandedURL, status int) {
 	res := responses.ShorteningResult{
-		Result: h.service.FormatShortURL(shortURL.ID),
+		Result: h.services.FormatShortURL(shortURL.ID),
 	}
 
 	// marshalling - сортировка (сериаоизация) в json
@@ -57,7 +57,7 @@ func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	userID := h.getUserID(r)
 
 	// Если нет ошибок и значение url уникально, то err == nil
-	shortURL, err := h.service.Shorten(r.Context(), v.OriginalURL, userID)
+	shortURL, err := h.services.Shorten(r.Context(), v.OriginalURL, userID)
 
 	// Iter13 генерация нужного ответа - 409
 	var notUniqueErr *storage.NotUniqueURLError
@@ -77,7 +77,7 @@ func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 func publicationResult(w http.ResponseWriter, h *Handler, shortURL entity.ExpandedURL, status int) {
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(status)
-	shortenedURL := h.service.FormatShortURL(shortURL.ID)
+	shortenedURL := h.services.FormatShortURL(shortURL.ID)
 	if _, err := w.Write([]byte(shortenedURL)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -106,7 +106,7 @@ func (h *Handler) ShortenText(w http.ResponseWriter, r *http.Request) {
 	userID := h.getUserID(r)
 
 	// Если нет ошибок и значение url уникально, то err == nil
-	shortURL, err := h.service.Shorten(r.Context(), string(url), userID)
+	shortURL, err := h.services.Shorten(r.Context(), string(url), userID)
 
 	// iter13. Проверка на уникальность
 	// Сама проверка в Shorten, а точнеее в методе Save (при записи в хранилище).

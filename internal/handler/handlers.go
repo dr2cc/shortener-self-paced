@@ -20,10 +20,11 @@ import (
 const UserIDCookieName = "shortener-user-id"
 
 type Handler struct {
-	Mux     *chi.Mux             // маршрутизатор, который мы будем использовать для обработки запросов
-	service *service.Shortener   // сервис, который содержит бизнес-логику (generator, Random), хранилище, конфигурацию
-	crypto  crypto.Cryptographer // интерфейс, который будет использовать для шифрования и дешифрования значений
-	log     *slog.Logger         // логгер
+	Mux *chi.Mux // маршрутизатор, который мы будем использовать для обработки запросов
+	// handler имеет (видимо везде!) в качестве зависимости указатель на структуру сервисоВ (по этому множественное число!)
+	services *service.Shortener   // сервис, который содержит бизнес-логику (generator, Random), хранилище, конфигурацию
+	crypto   crypto.Cryptographer // интерфейс, который будет использовать для шифрования и дешифрования значений
+	log      *slog.Logger         // логгер
 }
 
 // NewHandler создает новый экземпляр структуры Handler, инициализирует chi мультиплексор,
@@ -32,10 +33,10 @@ type Handler struct {
 func NewHandler(service *service.Shortener, log *slog.Logger, config *config.Config) *Handler {
 	cryptographer := crypto.GCMAESCryptographer{Key: config.EncryptionKey, Random: service.Random}
 	return &Handler{
-		Mux:     chi.NewMux(),
-		service: service,
-		crypto:  &cryptographer,
-		log:     log,
+		Mux:      chi.NewMux(),
+		services: service,
+		crypto:   &cryptographer,
+		log:      log,
 	}
 }
 
@@ -127,17 +128,17 @@ func (h *Handler) addEncryptedUserIDToCookie(w *http.ResponseWriter, userID stri
 func (h *Handler) getUserID(r *http.Request) string {
 	encodedCookie, err := r.Cookie(UserIDCookieName)
 	if err != nil {
-		return h.service.GenerateNewUserID()
+		return h.services.GenerateNewUserID()
 	}
 
 	decodedCookie, err := hex.DecodeString(encodedCookie.Value)
 	if err != nil {
-		return h.service.GenerateNewUserID()
+		return h.services.GenerateNewUserID()
 	}
 
 	decryptedUserID, err := h.crypto.Decrypt(decodedCookie)
 	if err != nil {
-		return h.service.GenerateNewUserID()
+		return h.services.GenerateNewUserID()
 	}
 
 	return string(decryptedUserID)
@@ -145,7 +146,7 @@ func (h *Handler) getUserID(r *http.Request) string {
 
 // Ping is a health check endpoint.
 func (h *Handler) Ping(w http.ResponseWriter, r *http.Request) {
-	err := h.service.HealthCheck(r.Context())
+	err := h.services.HealthCheck(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

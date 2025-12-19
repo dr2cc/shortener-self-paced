@@ -49,7 +49,7 @@ func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 	userID := h.getUserID(r)
 
 	// Вход в сократитель
-	shortURLBatches, err := h.service.ShortenBatch(r.Context(), batch, userID)
+	shortURLBatches, err := h.services.ShortenBatch(r.Context(), batch, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -64,7 +64,7 @@ func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 	for i, shortURLBatch := range shortURLBatches {
 		res[i] = ShorteningBatchResult{
 			CorrelationID: shortURLBatch.CorrelationID,
-			ShortURL:      h.service.FormatShortURL(shortURLBatch.ID),
+			ShortURL:      h.services.FormatShortURL(shortURLBatch.ID),
 		}
 	}
 

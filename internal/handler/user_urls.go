@@ -11,7 +11,7 @@ func (h *Handler) UserURLs(w http.ResponseWriter, r *http.Request) {
 
 	userID := h.getUserID(r)
 	h.log.Info("user", slog.String("ID", userID))
-	URLs, err := h.service.GetUrlsCreatedBy(r.Context(), userID)
+	URLs, err := h.services.GetUrlsCreatedBy(r.Context(), userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -26,7 +26,7 @@ func (h *Handler) UserURLs(w http.ResponseWriter, r *http.Request) {
 	for _, URL := range URLs {
 		formattedURLs = append(
 			formattedURLs,
-			responses.UsersShortURL{ShortURL: h.service.FormatShortURL(URL.ID), OriginalURL: URL.OriginalURL},
+			responses.UsersShortURL{ShortURL: h.services.FormatShortURL(URL.ID), OriginalURL: URL.OriginalURL},
 		)
 	}
 

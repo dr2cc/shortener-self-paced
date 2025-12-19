@@ -13,9 +13,41 @@ func TestHandler_ShortenText(t *testing.T) {
 	// shorten_test
 
 	// Arrange
+	type want struct {
+		statusCode int
+		body       string
+	}
+
 	// Табличное тестирование (table-driven tests).
-	// Создается переменная tests , ее тип - «срез из анонимных структур,
-	// содержащих поля name, service, log, config
+	// Создается переменная tests ,
+	// ее тип - «срез из анонимных структур,
+	// содержащих поля name, body, method, want
+	tests := []struct {
+		name   string
+		want   want
+		method string
+		body   string
+	}{
+		{
+			name: "post with url",
+			want: want{
+				statusCode: http.StatusCreated,
+				body:       "http://localhost:8080/id",
+			},
+			method: http.MethodPost,
+			body:   "url",
+		},
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// h := handlers.NewHandler(tt.service, tt.log, tt.config)
+			// h.ShortenText(tt.w, tt.r)
+		})
+	}
+}
+
+func TestHandler_ShortenAPI(t *testing.T) {
 	tests := []struct {
 		name string // description of this test case
 		// Named input parameters for receiver constructor.
@@ -28,15 +60,12 @@ func TestHandler_ShortenText(t *testing.T) {
 		w http.ResponseWriter
 		r *http.Request
 	}{
-		{
-			name: "good",
-		},
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := handlers.NewHandler(tt.service, tt.log, tt.config)
-			h.ShortenText(tt.w, tt.r)
+			h.ShortenAPI(tt.w, tt.r)
 		})
 	}
 }
