@@ -2,7 +2,7 @@ package jsonstore
 
 import (
 	"app/internal/entity"
-	"app/internal/storage"
+	storage "app/internal/repository"
 	"bufio"
 	"bytes"
 	"context"

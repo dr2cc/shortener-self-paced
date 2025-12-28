@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"app/internal/entity"
-	"app/internal/storage"
+	storage "app/internal/repository"
 	"encoding/json"
 	"errors"
 	"io"

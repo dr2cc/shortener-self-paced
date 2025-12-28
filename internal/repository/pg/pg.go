@@ -3,7 +3,7 @@ package pg
 import (
 	"app/internal/config"
 	"app/internal/entity"
-	"app/internal/storage"
+	storage "app/internal/repository"
 	"app/pkg/logger/sl"
 	"context"
 	"database/sql"
