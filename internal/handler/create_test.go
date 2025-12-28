@@ -3,7 +3,7 @@ package handlers_test
 import (
 	"app/internal/config"
 	handlers "app/internal/handler"
-	services "app/internal/service/shortener"
+	"app/internal/service"
 	"net/http"
 	"testing"
 )
@@ -12,7 +12,7 @@ func TestHandler_ShortenText(t *testing.T) {
 	tests := []struct {
 		name string // description of this test case
 		// Named input parameters for receiver constructor.
-		service *services.Shortener
+		service *service.Service
 		config  *config.Config
 		// Named input parameters for target function.
 		w http.ResponseWriter
@@ -32,7 +32,7 @@ func TestHandler_ShortenAPI(t *testing.T) {
 	tests := []struct {
 		name string // description of this test case
 		// Named input parameters for receiver constructor.
-		service *services.Shortener
+		service *service.Service
 		config  *config.Config
 		// Named input parameters for target function.
 		w http.ResponseWriter

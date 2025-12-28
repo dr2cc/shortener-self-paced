@@ -9,8 +9,7 @@ import (
 	jsonstore "app/internal/repository/jsonrstore"
 	"app/internal/repository/pg"
 	"app/internal/server"
-	"app/internal/service/random"
-	service "app/internal/service/shortener"
+	"app/internal/service"
 	"app/pkg/logger/sl"
 	"context"
 	"fmt"
@@ -46,7 +45,7 @@ func Run(cfg *config.Config) {
 	// Считаю, что здесь правильно присвоено значение
 	// структуры RandomStringGenerator (по сути поведение- метод GenerateIDfromString)
 	// а не интерфейса IDGenerator () (интерфейс служит границей между слоями)
-	randomKey := random.RandomStringGenerator{}
+	randomKey := service.RandomStringGenerator{}
 	// Создаем "сущность" этого сервиса
 	// В чем смысл такой сущности (еще глянуть в обеих чистых архитектурах)?
 	// По моему мнению- чтобы в любом месте проекта были доступны основные методы именно из этй сущности,

@@ -1,11 +1,10 @@
-// The services package contains the core business logic of the application.
+// The service package contains the core business logic of the application.
 package service
 
 import (
 	"app/internal/config"
 	"app/internal/entity"
 	storage "app/internal/repository"
-	"app/internal/service/random"
 	"context"
 	"errors"
 	"fmt"
@@ -22,20 +21,24 @@ import (
 // FormatShortURL(urlID string) string
 // }
 
-// Shortener — служба, предоставляющая бизнес-логику, хранилище, конфигурацию
-// Все поля (кроме конфигурации)
-// у этой службы (по сути main service) - интерфейсы.
+// Здесь определены предметные области (доменные зоны).
+// ❗Предметная область это круг задач (сферы реального мира) решаемых приложением.
+// Предметные области этого проекта (по мере добавления):
+// 🔸 сокращение URL.
+//
 // Предотвращение «утечек абстракции» https://habr.com/ru/articles/881918/
-type Shortener struct {
-	Random     random.IDGenerator
+type Service struct {
+	// Сервис сокращения URL (создает ID (shortURL) из url), со своим функционалом
+	Random IDGenerator
+	// ❌ по todo-app, "общаться" с хранилищем правильнее из самого сервиса (пока только Random)
 	repository storage.Repository
 	config     *config.Config
 	//generator  generator.URLGenerator
 }
 
 // New создает службу сокращения URL
-func New(rand random.IDGenerator, repo storage.Repository, conf *config.Config) *Shortener {
-	return &Shortener{
+func New(rand IDGenerator, repo storage.Repository, conf *config.Config) *Service {
+	return &Service{
 		Random:     rand,
 		repository: repo,
 		config:     conf,
@@ -45,7 +48,7 @@ func New(rand random.IDGenerator, repo storage.Repository, conf *config.Config) 
 
 // ShortenBatch сокращает массив значений []entity.ExpandedURL
 // Все записи пакета должны содержать OriginalURL.
-func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ExpandedURL) ([]entity.ExpandedURL, error) {
+func (sh *Service) ShortenBatch(ctx context.Context, batch []entity.ExpandedURL) ([]entity.ExpandedURL, error) {
 	for i, URL := range batch {
 		urlID, err := sh.Random.GenerateIDfromString(URL.OriginalURL)
 		if err != nil {
@@ -63,7 +66,7 @@ func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ExpandedUR
 }
 
 // Shorten сокращает полный URL и возвращает заполненную структуру ShortURL
-func (sh *Shortener) Shorten(ctx context.Context, url string) (entity.ExpandedURL, error) {
+func (sh *Service) Shorten(ctx context.Context, url string) (entity.ExpandedURL, error) {
 	urlID, err := sh.Random.GenerateIDfromString(url)
 	if err != nil {
 		return entity.ExpandedURL{}, err
@@ -101,7 +104,7 @@ func (sh *Shortener) Shorten(ctx context.Context, url string) (entity.ExpandedUR
 
 // Функция FindURL находит в хранилище полный URL-адрес по указанному идентификатору.
 // Возвращает заполненную структуру entity.ExpandedURL
-func (sh *Shortener) FindURL(ctx context.Context, id string) (entity.ExpandedURL, error) {
+func (sh *Service) FindURL(ctx context.Context, id string) (entity.ExpandedURL, error) {
 	origURL, err := sh.repository.FindByID(ctx, id)
 	if err != nil {
 		return entity.ExpandedURL{}, err //Shortener
@@ -110,7 +113,7 @@ func (sh *Shortener) FindURL(ctx context.Context, id string) (entity.ExpandedURL
 }
 
 // HealthCheck проверяет корректность работы выбранного хранилища
-func (sh *Shortener) HealthCheck(ctx context.Context) error {
+func (sh *Service) HealthCheck(ctx context.Context) error {
 	timeout := 5 * time.Second //nolint:gomnd
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -119,7 +122,7 @@ func (sh *Shortener) HealthCheck(ctx context.Context) error {
 
 // FormatShortURL форматирует полученный идентификатор URL
 // в результирующую строку, возвращаемую запросами POST
-func (sh *Shortener) FormatShortURL(urlID string) string {
+func (sh *Service) FormatShortURL(urlID string) string {
 	return fmt.Sprintf("%s/%s", sh.config.BaseURL, urlID)
 }
 

@@ -3,7 +3,7 @@ package handlers
 
 import (
 	"app/internal/config"
-	services "app/internal/service/shortener"
+	"app/internal/service"
 	mwLogger "app/pkg/middleware/logger"
 	"compress/flate"
 	"compress/gzip"
@@ -16,15 +16,16 @@ import (
 )
 
 type Handler struct {
-	Mux     *chi.Mux            // маршрутизатор, который мы будем использовать для обработки запросов
-	service *services.Shortener // сервис, который содержит бизнес-логику, хранилище, конфигурацию
+	Mux     *chi.Mux         // маршрутизатор, который мы будем использовать для обработки запросов
+	service *service.Service // сервисы, содержащие бизнес-логику
 	// crypto
 }
 
+// Вызывается ниже, из NewRouter
 // NewHandler создает новый экземпляр структуры Handler, инициализирует chi мультиплексор,
 // и выбирает службу
 // и crypto
-func NewHandler(service *services.Shortener, config *config.Config) *Handler {
+func NewHandler(service *service.Service, config *config.Config) *Handler {
 	// cryptographer := {}
 	return &Handler{
 		Mux:     chi.NewMux(),
@@ -33,8 +34,9 @@ func NewHandler(service *services.Shortener, config *config.Config) *Handler {
 	}
 }
 
+// Вызывается из app
 // NewRouter создает новый маршрутизатор, добавляет middleware, а затем добавляет маршруты
-func NewRouter(service *services.Shortener, cfg *config.Config, log *slog.Logger) chi.Router {
+func NewRouter(service *service.Service, cfg *config.Config, log *slog.Logger) chi.Router {
 	router := chi.NewRouter()
 
 	router.Use(middleware.RequestID)
