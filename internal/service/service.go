@@ -39,7 +39,10 @@ type Service struct {
 // Вызывается из app
 func NewService(rand IDGenerator, repo storage.Repository, conf *config.Config) *Service {
 	return &Service{
-		Random:     rand,
+		Random: rand,
+		// // ❌ по todo-app вот так создают сервисы приложения
+		// // Создаю новый проект. Назову shortener-todo-app. В нем iter1 и затем iter13(!?)
+		// Random:     NewRandomService(repo.Random),
 		repository: repo,
 		config:     conf,
 		//generator:  generator,
