@@ -52,7 +52,7 @@ func Run(cfg *config.Config) {
 	// а не напрямую (разделение слоев?)
 	// Нет! Это и есть:
 	// 2️⃣ Use case (BL)!
-	services := service.New(randomKey, repository, cfg)
+	services := service.NewService(randomKey, repository, cfg)
 	// ↑
 	// |
 	// 1️⃣ Handler (PL)

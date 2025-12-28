@@ -36,8 +36,8 @@ type Service struct {
 	//generator  generator.URLGenerator
 }
 
-// New создает службу сокращения URL
-func New(rand IDGenerator, repo storage.Repository, conf *config.Config) *Service {
+// Вызывается из app
+func NewService(rand IDGenerator, repo storage.Repository, conf *config.Config) *Service {
 	return &Service{
 		Random:     rand,
 		repository: repo,
