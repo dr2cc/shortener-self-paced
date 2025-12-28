@@ -42,6 +42,7 @@ func NewService(rand IDGenerator, repo storage.Repository, conf *config.Config) 
 		Random: rand,
 		// // ❌ по todo-app вот так создают сервисы приложения
 		// // Создаю новый проект. Назову shortener-todo-app. В нем iter1 и затем iter13(!?)
+		// // В iter1 привожу к todo-app (м.б. и gin использовать?!)
 		// Random:     NewRandomService(repo.Random),
 		repository: repo,
 		config:     conf,
