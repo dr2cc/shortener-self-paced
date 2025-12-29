@@ -134,6 +134,34 @@ func (repo *FileRepository) Close(_ context.Context) error {
 	return repo.file.Close()
 }
 
+// GetUsersUrls считывает файл построчно и возвращает все URL-адреса,
+// созданные пользователем с идентификатором userID.
+func (repo *FileRepository) GetUsersUrls(_ context.Context, userID string) ([]entity.ExpandedURL, error) {
+	repo.mutex.RLock()
+	defer repo.mutex.RUnlock()
+
+	if _, err := repo.file.Seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
+
+	var entry entity.ExpandedURL
+	var URLs []entity.ExpandedURL
+
+	scanner := bufio.NewScanner(repo.file)
+
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if err := json.NewDecoder(bytes.NewReader(line)).Decode(&entry); err != nil {
+			return nil, err
+		}
+		if entry.CreatedByID == userID {
+			URLs = append(URLs, entry)
+		}
+	}
+
+	return URLs, nil
+}
+
 // Check checks if file is ok.
 func (repo *FileRepository) Check(_ context.Context) error {
 	_, err := repo.file.Stat()

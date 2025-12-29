@@ -23,8 +23,8 @@
             "args": [
                 "-a",
                 "localhost:8080",
-                "--d",
-                "postgres://postgres:qwerty@localhost:5434/postgres?sslmode=disable",
+                // "--d",
+                // "postgres://postgres:qwerty@localhost:5434/postgres?sslmode=disable",
                 "--f",
                 "debugArgs.json"
             ]

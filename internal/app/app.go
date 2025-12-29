@@ -5,12 +5,13 @@ import (
 	"app/internal/config"
 	handlers "app/internal/handler"
 	"app/internal/server"
+	service "app/internal/service"
 	"app/internal/storage"
 	"app/internal/storage/cache"
 	jsonstore "app/internal/storage/jsonrstore"
 	"app/internal/storage/pg"
+	"app/internal/usecase/generator"
 	"app/internal/usecase/random"
-	service "app/internal/usecase/shortener"
 	"app/pkg/logger/sl"
 	"context"
 	"fmt"
@@ -28,7 +29,7 @@ const (
 	envProd  = "prod"
 )
 
-// Run создает объекты (через конструкторы!)
+// Run создает сущности (через конструкторы!)
 func Run(cfg *config.Config) {
 	// Создаем объект логгера
 	log := setupLogger(cfg.Env)
@@ -36,28 +37,27 @@ func Run(cfg *config.Config) {
 	log.Debug("logger debug mode enabled")
 
 	// Создаем сущности слоев в обратном порядке!
-	//
-	// 3️⃣ Repository🧹🏦 (DAL)
+
 	// Создаем объект хранилища, в соответствии с настройками
 	repository := choosingStorage(log, cfg)
+	// 3️⃣ Repository🧹🏦 (DAL)
 	// ↑
-	// | внедряем в бизнес-логику
-	// Use-Case🧹🏦
-	// Считаю, что здесь правильно присвоено значение
-	// структуры RandomStringGenerator (по сути поведение- метод GenerateIDfromString)
-	// а не интерфейса IDGenerator () (интерфейс служит границей между слоями)
-	randomKey := random.RandomStringGenerator{}
-	// Создаем "сущность" этого сервиса
-	// В чем смысл такой сущности (еще глянуть в обеих чистых архитектурах)?
-	// По моему мнению- чтобы в любом месте проекта были доступны основные методы именно из этй сущности,
-	// а не напрямую (разделение слоев?)
-	// Нет! Это и есть:
+	// | Use-Case🧹🏦
+	// gen это рандомайзер для сокращения URL
+	// HashGenerator реализует метод GenerateIDFromString
+	// создающий ID (shortURL) из url
+	gen := &generator.HashGenerator{}
+	// iter14 ? Проследить как внедряется новое
+	randomGenerator := &random.TrulyRandomGenerator{}
+	// Создаем Shortener, основной сервис приложения (the main service of the application)
+	service := service.New(repository, gen, randomGenerator, cfg)
 	// 2️⃣ Use case (BL)!
-	services := service.New(randomKey, repository, cfg)
 	// ↑
 	// |
+	router := handlers.NewRouter(service, cfg, log)
 	// 1️⃣ Handler (PL)
-	router := handlers.NewRouter(services, cfg, log)
+	// ↑
+	// | слои из Three-layered architecture (N-tier architecture)
 
 	// HTTP Server🧹🏦
 	restAPIserver, err := server.New(cfg, router)

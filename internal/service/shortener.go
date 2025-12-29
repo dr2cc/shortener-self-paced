@@ -5,6 +5,7 @@ import (
 	"app/internal/config"
 	"app/internal/entity"
 	"app/internal/storage"
+	"app/internal/usecase/generator"
 	"app/internal/usecase/random"
 	"context"
 	"errors"
@@ -22,37 +23,51 @@ import (
 // FormatShortURL(urlID string) string
 // }
 
-// Shortener — служба, предоставляющая бизнес-логику, хранилище, конфигурацию
-// Все поля (кроме конфигурации)
-// у этой службы (по сути main service) - интерфейсы.
-// Предотвращение «утечек абстракции» https://habr.com/ru/articles/881918/
+// Shortener — служба, предоставляющая хранилище, бизнес-логику, конфигурацию.
+// Обращается она к хранилищу и бизнес-логике исключительно через интерфейсы.
+// Это соответствует подходу, в котором "внешний мир" для usecase
+//
+//	— это всего лишь набор интерфейсов,
+//
+// которые оперируют сущностями из слоя domain и не имеют никаких деталей о том,
+// кто и как реализует эти интерфейсы.
+// Но shortener выполняет не единственную задачу и в этом не соответствует usecase.
+// ❗Фундаментальное отличие между service и usecase заключается в том, что
+// service, как правило, реализует набор методов, тогда как
+// usecase сосредоточен на выполнении одной конкретной задачи,
+// обеспечивая высокую изоляцию и строгое соблюдение принципа единственной ответственности.
+// В итоге service, который в процессе рефакторинга стремится к более высокой степени изоляции
+//
+//	и всё больше ориентируется на соблюдение принципа единственной ответственности, рано или поздно вырождается в usecase.
+//
+// https://habr.com/ru/articles/881918/
 type Shortener struct {
-	Random     random.IDGenerator
 	repository storage.Repository
+	generator  generator.URLGenerator
+	Random     random.Generator
 	config     *config.Config
-	//generator  generator.URLGenerator
 }
 
-// New создает службу сокращения URL
-func New(rand random.IDGenerator, repo storage.Repository, conf *config.Config) *Shortener {
+// В этом конструкторе создаем службу сокращения URL - Shortener
+func New(repo storage.Repository, generator generator.URLGenerator, random random.Generator, conf *config.Config) *Shortener {
 	return &Shortener{
-		Random:     rand,
 		repository: repo,
+		generator:  generator,
+		Random:     random,
 		config:     conf,
-		//generator:  generator,
 	}
 }
 
-// ShortenBatch сокращает массив значений []entity.ExpandedURL
+// ShortenBatch сокращает массив значений типа []entity.ExpandedURL
 // Все записи пакета должны содержать OriginalURL.
-func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ExpandedURL) ([]entity.ExpandedURL, error) {
+func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ExpandedURL, userID string) ([]entity.ExpandedURL, error) {
 	for i, URL := range batch {
-		urlID, err := sh.Random.GenerateIDfromString(URL.OriginalURL)
+		urlID, err := sh.generator.GenerateIDFromString(URL.OriginalURL)
 		if err != nil {
 			return nil, err
 		}
 		batch[i].ID = urlID
-		//batch[i].CreatedByID = userID
+		batch[i].CreatedByID = userID
 	}
 
 	if err := sh.repository.SaveBatch(ctx, batch); err != nil {
@@ -63,8 +78,8 @@ func (sh *Shortener) ShortenBatch(ctx context.Context, batch []entity.ExpandedUR
 }
 
 // Shorten сокращает полный URL и возвращает заполненную структуру ShortURL
-func (sh *Shortener) Shorten(ctx context.Context, url string) (entity.ExpandedURL, error) {
-	urlID, err := sh.Random.GenerateIDfromString(url)
+func (sh *Shortener) Shorten(ctx context.Context, url string, userID string) (entity.ExpandedURL, error) {
+	urlID, err := sh.generator.GenerateIDFromString(url)
 	if err != nil {
 		return entity.ExpandedURL{}, err
 	}
@@ -72,7 +87,7 @@ func (sh *Shortener) Shorten(ctx context.Context, url string) (entity.ExpandedUR
 	shortURL := entity.ExpandedURL{
 		OriginalURL: url,
 		ID:          urlID,
-		// CreatedByID: userID,
+		CreatedByID: userID,
 	}
 
 	// Пробуем записать в хранилище, с проверкой уникальности (iter13)
@@ -144,4 +159,19 @@ func NewShorteningError(shortURL entity.ExpandedURL, err error) error {
 		Err:      err,
 		ShortURL: shortURL,
 	}
+}
+
+// GenerateNewUserID generates new user id.
+// It's just a wrapper for random.GenerateNewUserID().
+func (sh *Shortener) GenerateNewUserID() string {
+	//return sh.Random.GenerateNewUserID()
+	return sh.Random.GenerateNewUserID()
+}
+
+// GetUrlsCreatedBy returns array of all urs that was shortened by given userID.
+// It's just a wrapper for repository.GetUsersUrls.
+// GetUrlsCreatedBy возвращает массив всех URL-адресов, сокращённых по заданному идентификатору пользователя.
+// Это только оболочка для repository.GetUsersUrls (в каждом из видов хранилищ).
+func (sh *Shortener) GetUrlsCreatedBy(ctx context.Context, userID string) ([]entity.ExpandedURL, error) {
+	return sh.repository.GetUsersUrls(ctx, userID)
 }

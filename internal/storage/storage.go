@@ -15,6 +15,7 @@ type Repository interface {
 	Close(_ context.Context) error
 	Check(ctx context.Context) error
 	SaveBatch(ctx context.Context, batch []entity.ExpandedURL) error
+	GetUsersUrls(ctx context.Context, userID string) ([]entity.ExpandedURL, error)
 }
 
 // NotUniqueURLError — ошибка, возникшая при сохранении URL, который уже существует.

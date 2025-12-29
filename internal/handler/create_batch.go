@@ -46,13 +46,17 @@ func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// userID := h.getUserID(r)
+	userID := h.getUserID(r)
 
 	// Вход в сократитель
-	shortURLBatches, err := h.service.ShortenBatch(r.Context(), batch)
+	shortURLBatches, err := h.services.ShortenBatch(r.Context(), batch, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	if err = h.addEncryptedUserIDToCookie(&w, userID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
 	// Заполняем структуру для ответа
@@ -60,7 +64,7 @@ func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 	for i, shortURLBatch := range shortURLBatches {
 		res[i] = ShorteningBatchResult{
 			CorrelationID: shortURLBatch.CorrelationID,
-			ShortURL:      h.service.FormatShortURL(shortURLBatch.ID),
+			ShortURL:      h.services.FormatShortURL(shortURLBatch.ID),
 		}
 	}
 
