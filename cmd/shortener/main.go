@@ -13,6 +13,7 @@ func main() {
 		log.Fatalf("Config error: %s", err)
 	}
 
+	// TODO: обработка ошибки при старте
 	// Run
 	app.Run(cfg)
 }
