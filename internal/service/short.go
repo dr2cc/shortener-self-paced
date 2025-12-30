@@ -29,16 +29,18 @@ func (sh *Service) ShortenBatch(ctx context.Context, batch []entity.ExpandedURL)
 
 // Shorten сокращает полный URL и возвращает заполненную структуру ShortURL
 func (sh *Service) Shorten(ctx context.Context, url string) (entity.ExpandedURL, error) {
-	urlID, err := sh.Random.GenerateIDfromString(url)
-	if err != nil {
-		return entity.ExpandedURL{}, err
-	}
+	// urlID, err := sh.Random.GenerateIDfromString(url)
+	// if err != nil {
+	// 	return entity.ExpandedURL{}, err
+	// }
 
-	shortURL := entity.ExpandedURL{
-		OriginalURL: url,
-		ID:          urlID,
-		// CreatedByID: userID,
-	}
+	// shortURL := entity.ExpandedURL{
+	// 	OriginalURL: url,
+	// 	ID:          urlID,
+	// 	// CreatedByID: userID,
+	// }
+
+	shortURL, err := sh.mapping(url)
 
 	// Пробуем записать в хранилище, с проверкой уникальности (iter13)
 	err = sh.repository.Save(ctx, shortURL)
