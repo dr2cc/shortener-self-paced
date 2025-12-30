@@ -41,6 +41,9 @@ func (sh *Service) Shorten(ctx context.Context, url string) (entity.ExpandedURL,
 	// }
 
 	shortURL, err := sh.mapping(url)
+	if err != nil {
+		return entity.ExpandedURL{}, err
+	}
 
 	// Пробуем записать в хранилище, с проверкой уникальности (iter13)
 	err = sh.repository.Save(ctx, shortURL)
