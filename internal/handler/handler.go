@@ -6,10 +6,7 @@ import (
 	"app/internal/service"
 	mwLogger "app/pkg/middleware/logger"
 	"compress/flate"
-	"compress/gzip"
-	"io"
 	"log/slog"
-	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -98,21 +95,4 @@ func InitRoutes(service *service.Service, cfg *config.Config, log *slog.Logger) 
 	// //
 
 	return router
-}
-
-// Если тело запроса сжато с помощью gzip, возвращает gzip reader,
-// в противном случае возвращает request body (default reader)
-func getDecompressedReader(r *http.Request) (io.Reader, error) {
-	if r.Header.Get("Content-Encoding") == "gzip" {
-		return gzip.NewReader(r.Body)
-	}
-	return r.Body, nil
-}
-
-// Ping is a health check endpoint.
-func (h *Handler) Ping(w http.ResponseWriter, r *http.Request) {
-	err := h.service.HealthCheck(r.Context())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
 }

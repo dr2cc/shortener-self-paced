@@ -3,7 +3,7 @@ package app
 
 import (
 	"app/internal/config"
-	handlers "app/internal/handler"
+	"app/internal/handler"
 	storage "app/internal/repository"
 	"app/internal/repository/cache"
 	jsonstore "app/internal/repository/jsonrstore"
@@ -56,7 +56,7 @@ func Run(cfg *config.Config) {
 	// ↑
 	// |
 	// 1️⃣ Handler (PL)
-	router := handlers.InitRoutes(services, cfg, log)
+	router := handler.InitRoutes(services, cfg, log)
 
 	// HTTP Server🧹🏦
 	restAPIserver, err := server.New(cfg, router)
