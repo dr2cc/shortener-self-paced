@@ -23,11 +23,10 @@ func (s *HTTP) Shutdown() error {
 	return s.server.Shutdown(context.Background())
 }
 
+// Вызывается из server
 func NewHTTP(config *config.Config, router chi.Router) (Server, error) {
 	httpServer := &http.Server{
-		Addr: config.ServerAddress,
-		//Handler:           handlers.NewRouter(service, config),
-		// handler to invoke (обработчик для вызова)
+		Addr:              config.ServerAddress,
 		Handler:           router,
 		ReadHeaderTimeout: 1 * time.Second,
 	}

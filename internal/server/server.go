@@ -13,6 +13,7 @@ type Server interface {
 	Shutdown() error
 }
 
+// Вызывается из app
 func New(config *config.Config, router chi.Router) (Server, error) {
 	// Здесь будем запускать HTTP и HTTPS (инкремент 21)
 	return NewHTTP(config, router)

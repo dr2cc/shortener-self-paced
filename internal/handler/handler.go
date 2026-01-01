@@ -1,5 +1,5 @@
 // Package http_handlers contains functions that handles http requests
-package handlers
+package handler
 
 import (
 	"app/internal/config"
@@ -18,7 +18,7 @@ import (
 // 01.01.2026 Как я теперь понимаю здесь должны быть обязательно только три❗ сущности:
 // 🔸Handler struct  - главное назначение- передача запросов на уровень ниже --> service
 // 🔸func NewHandler - конструктор сущности Handler
-// 🔸func NewRouter (InitRoutes правильнее, это не конструктор) - описание всех обработчиков
+// 🔸func InitRoutes - описание всех обработчиков
 // Остальное- в зависимости от функционала приложения.
 // Не нужно все сносить сюда! Распределять по слоям!
 
@@ -42,8 +42,8 @@ func NewHandler(service *service.Service, config *config.Config) *Handler {
 }
 
 // Вызывается из app
-// NewRouter создает новый маршрутизатор, добавляет middleware, а затем добавляет маршруты
-func NewRouter(service *service.Service, cfg *config.Config, log *slog.Logger) chi.Router {
+// InitRoutes создает новый маршрутизатор, добавляет middleware, а затем добавляет маршруты
+func InitRoutes(service *service.Service, cfg *config.Config, log *slog.Logger) chi.Router {
 	router := chi.NewRouter()
 
 	router.Use(middleware.RequestID)

@@ -56,7 +56,7 @@ func Run(cfg *config.Config) {
 	// ↑
 	// |
 	// 1️⃣ Handler (PL)
-	router := handlers.NewRouter(services, cfg, log)
+	router := handlers.InitRoutes(services, cfg, log)
 
 	// HTTP Server🧹🏦
 	restAPIserver, err := server.New(cfg, router)
