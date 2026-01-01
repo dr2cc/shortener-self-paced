@@ -8,6 +8,7 @@ import (
 	"fmt"
 )
 
+// ❌ 01.01.2026 - должен использовать mapping? Как?
 // ShortenBatch сокращает массив значений []entity.ExpandedURL
 // Все записи пакета должны содержать OriginalURL.
 func (sh *Service) ShortenBatch(ctx context.Context, batch []entity.ExpandedURL) ([]entity.ExpandedURL, error) {
