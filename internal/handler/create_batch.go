@@ -46,6 +46,7 @@ func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// // ❌
 	// userID := h.getUserID(r)
 
 	// Вход в сократитель
