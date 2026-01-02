@@ -26,19 +26,25 @@ import (
 // Не нужно все сносить сюда! Распределять по слоям!
 
 type Handler struct {
-	Mux     *chi.Mux         // маршрутизатор, который мы будем использовать для обработки запросов
+	// Mux     *chi.Mux         // маршрутизатор, который мы будем использовать для обработки запросов
 	service *service.Service // сервисы, содержащие бизнес-логику
 	// crypto
 }
 
+// ❌ Необходимость поля Mux теперь (02.01.2026) не очевидна.
+// Соберу статистику использования:
+// 🚫 create_batch не использует Mux
+// 🚫 на запрос h.Mux ничего не найдено!!
+
 // Вызывается ниже, из NewRouter
-// NewHandler создает новый экземпляр структуры Handler, инициализирует chi мультиплексор,
+// NewHandler создает новый экземпляр структуры Handler
+// , инициализирует chi мультиплексор,
 // и выбирает службу
 // и crypto
 func NewHandler(service *service.Service, config *config.Config) *Handler {
 	// cryptographer := {}
 	return &Handler{
-		Mux:     chi.NewMux(),
+		// Mux:     chi.NewMux(),
 		service: service,
 		// crypto:  &cryptographer,
 	}

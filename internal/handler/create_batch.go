@@ -2,21 +2,16 @@ package handler
 
 import (
 	"app/internal/entity"
+	"app/internal/response"
 	"encoding/json"
 	"net/http"
 )
 
-// ❗Логика работы слоя http обработчиков:
+// ❗Логика работы слоя http обработчиков (соответственно и каждого обработчика):
 // 1️⃣ Принимаем данные от клиента (обычно в формате json).
 // 2️⃣ Мапим (преобразуем в конкретную объектную модель, структуру) 1️⃣ данные по нашей внутренней структуре.
 // 3️⃣ Передаем данные в службу нашего приложения.
 // 4️⃣ Возвращаем клиенту response.
-
-// ShorteningBatchResult — результат сокращения url при пакетном вводе
-type ShorteningBatchResult struct {
-	CorrelationID string `json:"correlation_id"`
-	ShortURL      string `json:"short_url"`
-}
 
 func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 	// "correlation_id" и "original_url" - так в запросе, по заданию  на iter12,
@@ -60,9 +55,9 @@ func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Заполняем структуру для ответа
-	res := make([]ShorteningBatchResult, len(shortURLBatches))
+	res := make([]response.CreateBatchResponse, len(shortURLBatches))
 	for i, shortURLBatch := range shortURLBatches {
-		res[i] = ShorteningBatchResult{
+		res[i] = response.CreateBatchResponse{
 			CorrelationID: shortURLBatch.CorrelationID,
 			ShortURL:      h.service.FormatShortURL(shortURLBatch.ID),
 		}
