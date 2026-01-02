@@ -55,6 +55,7 @@ func Run(cfg *config.Config) {
 	services := service.NewService(randomKey, repository, cfg)
 	// ↑
 	// |
+	// // ❌ Переделать вызов сервера!! Как в todo-app1
 	// 1️⃣ Handler (PL)
 	router := handler.InitRoutes(services, cfg, log)
 
