@@ -26,27 +26,13 @@ import (
 // Не нужно все сносить сюда! Распределять по слоям!
 
 type Handler struct {
-	// Mux     *chi.Mux         // маршрутизатор, который мы будем использовать для обработки запросов
 	service *service.Service // сервисы, содержащие бизнес-логику
-	// crypto
 }
 
-// ❌ Необходимость поля Mux теперь (02.01.2026) не очевидна.
-// Соберу статистику использования:
-// 🚫 create_batch не использует Mux
-// 🚫 на запрос h.Mux ничего не найдено!!
-
 // Вызывается ниже, из NewRouter
-// NewHandler создает новый экземпляр структуры Handler
-// , инициализирует chi мультиплексор,
-// и выбирает службу
-// и crypto
 func NewHandler(service *service.Service, config *config.Config) *Handler {
-	// cryptographer := {}
 	return &Handler{
-		// Mux:     chi.NewMux(),
 		service: service,
-		// crypto:  &cryptographer,
 	}
 }
 
@@ -67,13 +53,6 @@ func InitRoutes(service *service.Service, cfg *config.Config, log *slog.Logger) 
 	// рандомайзер (бизнес-логику), хранилище и конфигурацию
 	router.Get("/{id}", h.Redirect)
 	router.Post("/", h.ShortenText)
-	// // При простой аутентификации, можно использовать такую конструкцию:
-	// router.Route("/", func(r chi.Router) {
-	// 	r.Use(middleware.BasicAuth("url-shortener", map[string]string{
-	// 		cfg.User: cfg.Password,
-	// 	}))
-	// 	r.Post("/", h.ShortText)
-	// })
 
 	router.Post("/api/shorten", h.ShortenAPI)
 	// iter10
@@ -86,25 +65,6 @@ func InitRoutes(service *service.Service, cfg *config.Config, log *slog.Logger) 
 	// Добавьте новый хендлер POST /api/shorten/batch,
 	// принимающий в теле запроса множество URL для сокращения в формате:
 	router.Post("/api/shorten/batch", h.BatchShortenAPI)
-
-	// //************************************************************************************
-	// // iter14
-	// // 	Добавьте в сервис функциональность аутентификации пользователя.
-	// // Сервис должен:
-	// // ◽ Выдавать пользователю симметрично подписанную куку, содержащую уникальный идентификатор пользователя,
-	// // если такой куки не существует или она не проходит проверку подлинности.
-
-	// // ◽ Иметь хендлер GET /api/user/urls,
-	// // который сможет вернуть пользователю все когда-либо сокращённые им URL в формате:
-	// // [
-	// //     {
-	// //         "short_url": "http://...",
-	// //         "original_url": "http://..."
-	// //     },
-	// //     ...
-	// // ]
-	// router.Get("/api/user/urls", h.UserURLs)
-	// //
 
 	return router
 }
