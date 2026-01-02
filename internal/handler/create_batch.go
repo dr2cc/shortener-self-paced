@@ -6,6 +6,12 @@ import (
 	"net/http"
 )
 
+// ❗Логика работы слоя http обработчиков:
+// 1️⃣ Принимаем данные от клиента (обычно в формате json).
+// 2️⃣ Мапим (преобразуются в конкретную объектную модель, структуру) 1️⃣ данные по нашей внутренней структуре.
+// 3️⃣ Передаем данные в службу нашего приложения.
+// 4️⃣ Возвращаем клиенту response.
+
 // ShorteningBatchResult — результат сокращения url при пакетном вводе
 type ShorteningBatchResult struct {
 	CorrelationID string `json:"correlation_id"`
@@ -45,9 +51,6 @@ func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 			CorrelationID: shortURLInput.CorrelationID,
 		}
 	}
-
-	// // ❌
-	// userID := h.getUserID(r)
 
 	// Вход в сократитель
 	shortURLBatches, err := h.service.ShortenBatch(r.Context(), batch)
