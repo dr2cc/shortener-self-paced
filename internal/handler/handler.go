@@ -47,6 +47,7 @@ func InitRoutes(service *service.Service, cfg *config.Config, log *slog.Logger) 
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.Compress(flate.BestSpeed))
 
+	// ❌ Переделать вызов сервера!! Как в todo-app1
 	h := NewHandler(service, cfg)
 
 	// Получается service нужен только для работы ручек- передает в них
