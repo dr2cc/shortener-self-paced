@@ -71,12 +71,17 @@ func Run(cfg *config.Config) {
 	// Отдельная горутина: сервер запускается в своей собственной горутине.
 	// Это необходимо, так как ListenAndServe() является блокирующим вызовом.
 
-	// go func() {
-	// 	// func (s *todo.Server) Run(port string, handler http.Handler) error
-	// 	if err := srv.Run(cfg.ServerAddress, handlers.InitRoutes(log)); err != nil {
-	// 		logrus.Fatalf("error occured while running http server: %s", err.Error())
-	// 	}
-	// }()
+	//// ❗Вариант из todo-app1 не проходил тесты.
+	//// Причина:
+	// 	Функция logrus.Fatalf делает две вещи:
+	// Печатает лог.
+	// Вызывает os.Exit(1).
+	// В результате, когда тест останавливает сервер, ваше приложение вместо «чистого» выхода (статус 0)
+	// принудительно завершается с ошибкой (статус 1).
+	// Тестовый сьют видит этот статус и считает, что сервер «упал».
+	//
+	// Добавил проверку:
+	// if !errors.Is(err, http.ErrServerClosed) {}
 
 	go func() {
 		if err := srv.Run(cfg.ServerAddress, handlers.InitRoutes(log)); err != nil {
