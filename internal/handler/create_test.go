@@ -22,7 +22,7 @@ func TestHandler_ShortenText(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := handlers.NewHandler(tt.service, tt.config)
+			h := handlers.NewHandler(tt.service)
 			h.ShortenText(tt.w, tt.r)
 		})
 	}
@@ -42,7 +42,7 @@ func TestHandler_ShortenAPI(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := handlers.NewHandler(tt.service, tt.config)
+			h := handlers.NewHandler(tt.service)
 			h.ShortenAPI(tt.w, tt.r)
 		})
 	}

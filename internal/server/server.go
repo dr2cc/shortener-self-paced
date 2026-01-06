@@ -3,18 +3,41 @@
 package server
 
 import (
-	"app/internal/config"
-
-	"github.com/go-chi/chi/v5"
+	"context"
+	"net/http"
+	"time"
 )
 
-type Server interface {
-	Run() error
-	Shutdown() error
+//// Решение от ypgo с последующим выбором типа сервера (http или https)
+//// Раскритиковано ментором.
+// type Server interface {
+// 	Run() error
+// 	Shutdown() error
+// }
+
+// // Вызывается из app
+// func New(config *config.Config, router chi.Router) (Server, error) {
+// 	// Здесь будем запускать HTTP и HTTPS (инкремент 21)
+// // NewHTTP в ypgo по пути http.NewHTTP
+// 	return NewHTTP(config, router)
+// }
+
+type Server struct {
+	httpServer *http.Server
 }
 
-// Вызывается из app
-func New(config *config.Config, router chi.Router) (Server, error) {
-	// Здесь будем запускать HTTP и HTTPS (инкремент 21)
-	return NewHTTP(config, router)
+func (s *Server) Run(port string, handler http.Handler) error {
+	s.httpServer = &http.Server{
+		Addr:           port,
+		Handler:        handler,
+		MaxHeaderBytes: 1 << 20, // 1 MB
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+	}
+
+	return s.httpServer.ListenAndServe()
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.httpServer.Shutdown(ctx)
 }

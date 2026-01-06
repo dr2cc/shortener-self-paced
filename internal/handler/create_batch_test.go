@@ -22,7 +22,7 @@ func TestHandler_BatchShortenAPI(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := handlers.NewHandler(tt.service, tt.config)
+			h := handlers.NewHandler(tt.service)
 			h.BatchShortenAPI(tt.w, tt.r)
 		})
 	}

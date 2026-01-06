@@ -10,15 +10,13 @@ import (
 	"app/internal/repository/pg"
 	"app/internal/server"
 	"app/internal/service"
-	"app/pkg/logger/sl"
 	"context"
-	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -55,42 +53,107 @@ func Run(cfg *config.Config) {
 	services := service.NewService(randomKey, repository, cfg)
 	// ↑
 	// |
-	// // ❌ Переделать вызов сервера!! Как в todo-app1
-	// 1️⃣ Handler (PL)
-	router := handler.InitRoutes(services, cfg, log)
+
+	// ❗ Начало из todo-app1
+	// 1️⃣ Handler (PL - Presentation Layer, controller)
+	// | Здесь внедряем зависимость с services
+	handlers := handler.NewHandler(services)
+	// ↑ HTTP request
+
+	// Работает в обратном раправлении!
+	// HTTP запрос -> ручка -> обращение к службе -> служба к базе данных.
 
 	// HTTP Server🧹🏦
-	restAPIserver, err := server.New(cfg, router)
-	if err != nil {
-		log.Error("failed to create http server", sl.Err(err))
-		os.Exit(1)
+	srv := new(server.Server)
+
+	// Отдельная горутина: сервер запускается в своей собственной горутине.
+	// Это необходимо, так как ListenAndServe() является блокирующим вызовом.
+	go func() {
+		// func (s *todo.Server) Run(port string, handler http.Handler) error
+		if err := srv.Run(cfg.ServerAddress, handlers.InitRoutes(log)); err != nil {
+			logrus.Fatalf("error occured while running http server: %s", err.Error())
+		}
+	}()
+
+	logrus.Print("TodoApp Started")
+
+	// Graceful shutdown
+	// quit: Это наш "стоп-кран".
+	// Это буферизованный канал, который будет ожидать системные сигналы.
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+	<-quit
+
+	logrus.Print("TodoApp Shutting Down")
+
+	// Корректное завершение (?)
+	// Используем корневой контекст Background
+	if err := srv.Shutdown(context.Background()); err != nil {
+		logrus.Errorf("error occured on server shutting down: %s", err.Error())
 	}
 
-	// Waiting signal🧹🏦
-	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-
-	wg := &sync.WaitGroup{}
-	// TODO: готовлюсь к двум горутинам при добавлении сервера grpc
-	// тогда будет wg.Add(2)
-	wg.Add(1)
-
-	go runServer(ctx, wg, restAPIserver, "REST API server", log)
-	// // когда добавлю gRPC, то добавлю такую строку:
-	// go runServer(ctx, wg, grpcAPIserver, "gRPC API server", log)
-
-	wg.Wait()
-
-	// // TODO: close storage
-	// log.Info("trying to shutdown storage")
-	// errClose := repo.Close(context.Background()) //nolint:contextcheck
-	// if errClose != nil {
-	// 	//log.Fatal().Err(errClose)
-	// 	log.Error("the storage was NOT closed correctly", sl.Err(errClose))
-	// 	os.Exit(1)
-	// } else {
-	// 	log.Info("the storage was closed")
+	// // TODO: Close storage
+	// if err := db.Close(); err != nil {
+	// 	logrus.Errorf("error occured on db connection close: %s", err.Error())
 	// }
+	// ❗ Конец из todo-app1
+
+	// // // ❌ Переделать вызов сервера!! Как в todo-app1
+	// // 1️⃣ Handler (PL)
+	// router := handler.InitRoutes(services, cfg, log)
+
+	// // HTTP Server🧹🏦
+	// restAPIserver, err := server.New(cfg, router)
+	// if err != nil {
+	// 	log.Error("failed to create http server", sl.Err(err))
+	// 	os.Exit(1)
+	// }
+
+	// // Waiting signal🧹🏦
+	// ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+
+	// wg := &sync.WaitGroup{}
+	// // TODO: готовлюсь к двум горутинам при добавлении сервера grpc
+	// // тогда будет wg.Add(2)
+	// wg.Add(1)
+
+	// go runServer(ctx, wg, restAPIserver, "REST API server", log)
+	// // // когда добавлю gRPC, то добавлю такую строку:
+	// // go runServer(ctx, wg, grpcAPIserver, "gRPC API server", log)
+
+	// wg.Wait()
+
+	// // // TODO: close storage
+	// // log.Info("trying to shutdown storage")
+	// // errClose := repo.Close(context.Background()) //nolint:contextcheck
+	// // if errClose != nil {
+	// // 	//log.Fatal().Err(errClose)
+	// // 	log.Error("the storage was NOT closed correctly", sl.Err(errClose))
+	// // 	os.Exit(1)
+	// // } else {
+	// // 	log.Info("the storage was closed")
+	// // }
 }
+
+// func runServer(ctx context.Context, wg *sync.WaitGroup, server server.Server, servName string, log *slog.Logger) {
+// 	log.Info(fmt.Sprintf("%s started", servName))
+
+// 	go func() {
+// 		<-ctx.Done()
+// 		// Shutdown🧹🏦+
+// 		log.Info(fmt.Sprintf("trying to stop %s", servName))
+// 		if errShutdown := server.Shutdown(); errShutdown != nil {
+// 			log.Info("%s server shutdown: %v", servName, errShutdown)
+// 		} else {
+// 			log.Info(fmt.Sprintf("%s stopped", servName))
+// 		}
+// 		wg.Done()
+// 	}()
+
+// 	if errRun := server.Run(); errRun != http.ErrServerClosed && errRun != nil {
+// 		log.Info("%s could not have start: %v", servName, errRun)
+// 	}
+// }
 
 func choosingStorage(log *slog.Logger, cfg *config.Config) storage.Repository {
 	if cfg.DatabaseDSN != "" {
@@ -111,26 +174,6 @@ func choosingStorage(log *slog.Logger, cfg *config.Config) storage.Repository {
 	}
 
 	return cache.NewInMemoryRepository()
-}
-
-func runServer(ctx context.Context, wg *sync.WaitGroup, server server.Server, servName string, log *slog.Logger) {
-	log.Info(fmt.Sprintf("%s started", servName))
-
-	go func() {
-		<-ctx.Done()
-		// Shutdown🧹🏦+
-		log.Info(fmt.Sprintf("trying to stop %s", servName))
-		if errShutdown := server.Shutdown(); errShutdown != nil {
-			log.Info("%s server shutdown: %v", servName, errShutdown)
-		} else {
-			log.Info(fmt.Sprintf("%s stopped", servName))
-		}
-		wg.Done()
-	}()
-
-	if errRun := server.Run(); errRun != http.ErrServerClosed && errRun != nil {
-		log.Info("%s could not have start: %v", servName, errRun)
-	}
 }
 
 func setupLogger(env string) *slog.Logger {
