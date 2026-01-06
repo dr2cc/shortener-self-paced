@@ -11,7 +11,9 @@ import (
 	"app/internal/server"
 	"app/internal/service"
 	"context"
+	"errors"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -68,14 +70,24 @@ func Run(cfg *config.Config) {
 
 	// Отдельная горутина: сервер запускается в своей собственной горутине.
 	// Это необходимо, так как ListenAndServe() является блокирующим вызовом.
+
+	// go func() {
+	// 	// func (s *todo.Server) Run(port string, handler http.Handler) error
+	// 	if err := srv.Run(cfg.ServerAddress, handlers.InitRoutes(log)); err != nil {
+	// 		logrus.Fatalf("error occured while running http server: %s", err.Error())
+	// 	}
+	// }()
+
 	go func() {
-		// func (s *todo.Server) Run(port string, handler http.Handler) error
 		if err := srv.Run(cfg.ServerAddress, handlers.InitRoutes(log)); err != nil {
-			logrus.Fatalf("error occured while running http server: %s", err.Error())
+			// Проверяем, что ошибка НЕ является сигналом о закрытии сервера
+			if !errors.Is(err, http.ErrServerClosed) {
+				logrus.Fatalf("error occured while running http server: %s", err.Error())
+			}
 		}
 	}()
 
-	logrus.Print("TodoApp Started")
+	logrus.Print("ShortenerApp Started")
 
 	// Graceful shutdown
 	// quit: Это наш "стоп-кран".
