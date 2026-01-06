@@ -43,8 +43,8 @@ func NewPostgresRepo(log *slog.Logger, cfg *config.Config) (*PostgresRepo, error
 	defer cancel()
 
 	if err := db.PingContext(ctx); err != nil {
-		log.Error("error to ping", sl.Err(err))
-		return nil, fmt.Errorf("error to ping db: %v", err)
+		log.Error("error to ping db", sl.Err(err))
+		return nil, err //fmt.Errorf("error to ping db: %v", err)
 	}
 
 	repo := &PostgresRepo{DB: db}

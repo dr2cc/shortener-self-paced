@@ -84,7 +84,7 @@ func Run(cfg *config.Config) {
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
 
-	logrus.Print("TodoApp Shutting Down")
+	logrus.Print("ShortenerApp Shutting Down")
 
 	// Корректное завершение (?)
 	// Используем корневой контекст Background
