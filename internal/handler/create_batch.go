@@ -2,7 +2,7 @@ package handler
 
 import (
 	"app/internal/entity"
-	"app/internal/response"
+	"app/pkg/response"
 	"encoding/json"
 	"net/http"
 )
