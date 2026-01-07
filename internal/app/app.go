@@ -12,7 +12,9 @@ import (
 	"app/internal/service"
 	"app/pkg/logger/sl"
 	"context"
+	"errors"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -84,10 +86,10 @@ func Run(cfg *config.Config) {
 	go func() {
 		if err := srv.Run(cfg.ServerAddress, handlers.InitRoutes(log)); err != nil {
 			// Проверяем, что ошибка НЕ является сигналом о закрытии сервера
-			//if !errors.Is(err, http.ErrServerClosed) {
-			log.Error("failed to create http server", sl.Err(err))
-			os.Exit(1)
-			//}
+			if !errors.Is(err, http.ErrServerClosed) {
+				log.Error("failed to create http server", sl.Err(err))
+				os.Exit(1)
+			}
 		}
 	}()
 
