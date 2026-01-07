@@ -55,6 +55,7 @@ func Run(cfg *config.Config) {
 	// ↑
 	// 2️⃣ Use case (BL - Business Logic Layer, service)
 	// | Здесь внедряем зависимость с repository
+	// ❌ (07.01.26) Убрать такие знаки в service!
 	services := service.NewService(randomKey, repository, cfg)
 	// ↑
 	// 1️⃣ Handler (PL - Presentation Layer, controller)
@@ -86,7 +87,7 @@ func Run(cfg *config.Config) {
 	// Это необходимо, так как ListenAndServe() является блокирующим вызовом.
 	go func() {
 		if err := srv.Run(cfg.ServerAddress, handlers.InitRoutes(log)); err != nil {
-			// В Go метод http.Server.ListenAndServe() ("спрятан" внутри srv.Run) спроектирован так, что он всегда возвращает ошибку, если работа прекращена.
+			// В Go метод http.Server.ListenAndServe() ("спрятан" внутри srv.Run()) спроектирован так, что он всегда возвращает ошибку, если работа прекращена.
 			// Если это "авария" — вернется реальная ошибка.
 			// Если вы сами вызвали srv.Shutdown() — вернется специальная переменная http.ErrServerClosed.
 			// Если её не «отфильтровать», то приложение при выключении всегда будет "бросать" Fatal или os.Exit(1),

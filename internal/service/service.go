@@ -6,16 +6,6 @@ import (
 	storage "app/internal/repository"
 )
 
-// // TODO❗ ShortenerInterface со всем поведением службы Shortener,
-// // будет необходим для сервера gRPC
-// type ShortenerInterface interface {
-// ShortenBatch(ctx context.Context, batch []entity.ExpandedURL, userID string) ([]entity.ExpandedURL, error)
-// Shorten(ctx context.Context, url string, userID string) (entity.ExpandedURL, error)
-// FindURL(ctx context.Context, id string) (entity.ExpandedURL, error)
-// HealthCheck(ctx context.Context) error
-// FormatShortURL(urlID string) string
-// }
-
 // Здесь определены предметные области (доменные зоны).
 // ❗Предметная область это круг задач (сферы реального мира) решаемых приложением.
 // Предметные области этого проекта (по мере добавления):
