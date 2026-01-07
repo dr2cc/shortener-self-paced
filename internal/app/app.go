@@ -12,9 +12,7 @@ import (
 	"app/internal/service"
 	"app/pkg/logger/sl"
 	"context"
-	"errors"
 	"log/slog"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -71,9 +69,9 @@ func Run(cfg *config.Config) {
 	// Запуск и остановку сервера беру из todo-app1
 	// Но он не проходил тесты yp❗
 	// Причина:
-	// 	Функция logrus.Fatalf делает две вещи:
-	// Печатает лог.
-	// Вызывает os.Exit(1).
+	// Внутри обработки ошибки if err := srv.Run(){} происходят две вещи:
+	// Печатается лог.
+	// Вызывается os.Exit(1).
 	// В результате, когда тест останавливает сервер, ваше приложение вместо «чистого» выхода (статус 0)
 	// принудительно завершается с ошибкой (статус 1).
 	// Тестовый сьют видит этот статус и считает, что сервер «упал».
@@ -86,15 +84,14 @@ func Run(cfg *config.Config) {
 	go func() {
 		if err := srv.Run(cfg.ServerAddress, handlers.InitRoutes(log)); err != nil {
 			// Проверяем, что ошибка НЕ является сигналом о закрытии сервера
-			if !errors.Is(err, http.ErrServerClosed) {
-				//logrus.Fatalf("error occured while running http server: %s", err.Error())
-				log.Error("failed to create http server", sl.Err(err))
-				os.Exit(1)
-			}
+			//if !errors.Is(err, http.ErrServerClosed) {
+			log.Error("failed to create http server", sl.Err(err))
+			os.Exit(1)
+			//}
 		}
 	}()
 
-	log.Info("ShortenerApp Started")
+	log.Info("ShortenerApp is started")
 
 	// Graceful shutdown
 	// quit: Это наш "стоп-кран".
@@ -103,19 +100,21 @@ func Run(cfg *config.Config) {
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
 
-	log.Info("ShortenerApp Shutting Down")
+	log.Info("ShortenerApp is shutting down")
 
 	// Корректное завершение (?)
 	// Используем корневой контекст Background
 	if err := srv.Shutdown(context.Background()); err != nil {
-		//logrus.Errorf("error occured on server shutting down: %s", err.Error())
 		log.Error("failed to create http server", sl.Err(err))
 		os.Exit(1)
 	}
 
 	// // TODO: Close storage
 	// if err := db.Close(); err != nil {
-	// 	logrus.Errorf("error occured on db connection close: %s", err.Error())
+	// 	// Я не использую логгер logrus
+	// 	// logrus.Errorf("error occured on db connection close: %s", err.Error())
+	// 	log.Error("error occured on db connection close", sl.Err(err))
+	// 	os.Exit(1)
 	// }
 }
 
