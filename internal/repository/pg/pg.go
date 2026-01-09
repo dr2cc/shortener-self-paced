@@ -3,7 +3,7 @@ package pg
 import (
 	"app/internal/config"
 	"app/internal/entity"
-	storage "app/internal/repository"
+	err_repo "app/internal/errors/repository"
 	"app/pkg/logger/sl"
 	"context"
 	"database/sql"
@@ -134,7 +134,7 @@ func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ExpandedURL)
 	}
 
 	// Возвращаем пользовательскую ошибку с найденным ID
-	return &storage.NotUniqueURLError{
+	return &err_repo.NotUniqueURLError{
 		Err: nil,
 		ShortURL: entity.ExpandedURL{
 			OriginalURL: url,

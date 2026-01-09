@@ -5,9 +5,6 @@ import (
 	"app/internal/config"
 	"app/internal/handler"
 	storage "app/internal/repository"
-	"app/internal/repository/cache"
-	jsonstore "app/internal/repository/jsonrstore"
-	"app/internal/repository/pg"
 	"app/internal/server"
 	"app/internal/service"
 	"app/pkg/logger/sl"
@@ -44,19 +41,19 @@ func Run(cfg *config.Config) {
 	//
 	// 3️⃣ Repository🧹🏦 (DAL)
 	// Создаем объект хранилища, в соответствии с настройками
-	repository := choosingStorage(log, cfg)
+	repository := storage.NewRepository(log, cfg)
 	// ↑
 	// | внедряем в бизнес-логику
 	// Use-Case🧹🏦
 	// Считаю, что здесь правильно присвоено значение
 	// структуры RandomStringGenerator (по сути поведение- метод GenerateIDfromString)
 	// а не интерфейса IDGenerator () (интерфейс служит границей между слоями)
-	randomKey := service.RandomStringGenerator{}
+	// randomKey := service.RandomStringGenerator{}
 	// ↑
 	// 2️⃣ Use case (BL - Business Logic Layer, service)
 	// | Здесь внедряем зависимость с repository
 	// ❌ (07.01.26) Убрать такие знаки в service!
-	services := service.NewService(randomKey, repository, cfg)
+	services := service.NewService(repository, cfg)
 	// ↑
 	// 1️⃣ Handler (PL - Presentation Layer, controller)
 	// | Здесь внедряем зависимость с services
@@ -130,27 +127,6 @@ func Run(cfg *config.Config) {
 	// 	log.Error("error occured on db connection close", sl.Err(err))
 	// 	os.Exit(1)
 	// }
-}
-
-func choosingStorage(log *slog.Logger, cfg *config.Config) storage.Repository {
-	if cfg.DatabaseDSN != "" {
-		repo, err := pg.NewPostgresRepo(log, cfg)
-		if err != nil {
-			log.Error("failed to connect pg storage")
-			os.Exit(1)
-		}
-		return repo
-	}
-	if cfg.FilePath != "" {
-		repo, err := jsonstore.NewFileRepository(cfg.FilePath)
-		if err != nil {
-			log.Error("file (jsonstore) storage error")
-			os.Exit(1)
-		}
-		return repo
-	}
-
-	return cache.NewInMemoryRepository()
 }
 
 func setupLogger(env string) *slog.Logger {

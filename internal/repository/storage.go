@@ -2,14 +2,18 @@
 package storage
 
 import (
+	"app/internal/config"
 	"app/internal/entity"
+	"app/internal/repository/cache"
+	jsonstore "app/internal/repository/jsonrstore"
+	"app/internal/repository/pg"
 	"context"
+	"log/slog"
+	"os"
 )
 
-// Интерфейс создает "границу" обмена информацией между разными частями проекта
-// Интерфейс Repository определяет работу с хранением данных в проекте
-// DataStorageMethods
-type Repository interface {
+// ex. Repository
+type ShortURL interface {
 	Save(ctx context.Context, shortURL entity.ExpandedURL) error
 	FindByID(ctx context.Context, id string) (entity.ExpandedURL, error)
 	Close(_ context.Context) error
@@ -17,26 +21,39 @@ type Repository interface {
 	SaveBatch(ctx context.Context, batch []entity.ExpandedURL) error
 }
 
-// NotUniqueURLError — ошибка, возникшая при сохранении URL, который уже существует.
-type NotUniqueURLError struct {
-	Err      error
-	ShortURL entity.ExpandedURL
+type Repository struct {
+	ShortURL
 }
 
-func (err *NotUniqueURLError) Error() string {
-	return "url or id are already exist"
-}
-
-func (err *NotUniqueURLError) Unwrap() error {
-	return err.Err
-}
-
-func NewNotUniqueURLError(shortURL entity.ExpandedURL, err error) error {
-	return &NotUniqueURLError{
-		Err:      err,
-		ShortURL: shortURL,
+func NewRepository(log *slog.Logger, cfg *config.Config) *Repository {
+	return &Repository{
+		ShortURL: choosingStorage(log, cfg),
 	}
 }
 
-// // Будем использовать для тестов
-// var ErrNotUnique = func() error { return &NotUniqueURLError{} }()
+// type ChoosingStorage interface {
+// 	NewPostgresRepo(log *slog.Logger, cfg *config.Config)
+// 	NewFileRepository(cfg *config.Config)
+// 	NewInMemoryRepository()
+// }
+
+func choosingStorage(log *slog.Logger, cfg *config.Config) ShortURL {
+	if cfg.DatabaseDSN != "" {
+		repo, err := pg.NewPostgresRepo(log, cfg)
+		if err != nil {
+			log.Error("failed to connect pg storage")
+			os.Exit(1)
+		}
+		return repo
+	}
+	if cfg.FilePath != "" {
+		repo, err := jsonstore.NewFileRepository(cfg.FilePath)
+		if err != nil {
+			log.Error("file (jsonstore) storage error")
+			os.Exit(1)
+		}
+		return repo
+	}
+
+	return cache.NewInMemoryRepository()
+}

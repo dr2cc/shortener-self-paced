@@ -2,7 +2,7 @@ package handler
 
 import (
 	"app/internal/entity"
-	storage "app/internal/repository"
+	err_repo "app/internal/errors/repository"
 	"encoding/json"
 	"errors"
 	"io"
@@ -66,7 +66,7 @@ func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	shortURL, err := h.service.Shorten(r.Context(), v.OriginalURL)
 
 	// Iter13 генерация нужного ответа - 409
-	var notUniqueErr *storage.NotUniqueURLError
+	var notUniqueErr *err_repo.NotUniqueURLError
 	if errors.As(err, &notUniqueErr) {
 		apiPublicationResult(w, h, shortURL, http.StatusConflict)
 		return
@@ -119,7 +119,7 @@ func (h *Handler) ShortenText(w http.ResponseWriter, r *http.Request) {
 	// iter13. Проверка на уникальность
 	// Сама проверка в Shorten, а точнеее в методе Save (при записи в хранилище).
 	// Здесь генерируем нужный ответ - 409
-	var notUniqueErr *storage.NotUniqueURLError
+	var notUniqueErr *err_repo.NotUniqueURLError
 	if errors.As(err, &notUniqueErr) {
 		publicationResult(w, h, shortURL, http.StatusConflict)
 		return

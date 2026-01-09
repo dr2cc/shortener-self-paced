@@ -17,8 +17,6 @@ type Config struct {
 	ConfigPath    string
 }
 
-// NewConfig считывает конфигурацию в такой последовательности:
-// из флагов командной строки, переменных окружения и файла конфигурации.
 func NewConfig() (*Config, error) {
 	cfg := &Config{
 		Env:           "local", // Окружение - local, dev или prod,в первую очередь для логгера
@@ -43,6 +41,8 @@ func NewConfig() (*Config, error) {
 		return &Config{}, err
 	}
 
+	// Считываем конфигурацию в такой последовательности:
+	// - из флагов командной строки, - переменных окружения, - файла конфигурации, - значение по умолчанию
 	cfg.ServerAddress = priorityLine(cfg.ServerAddress, os.Getenv("SERVER_ADDRESS"), configFromFile.ServerAddress, ":8080")
 	cfg.BaseURL = priorityLine(cfg.BaseURL, os.Getenv("BASE_URL"), configFromFile.BaseURL, "http://localhost:8080")
 	cfg.FilePath = priorityLine(cfg.FilePath, os.Getenv("FILE_STORAGE_PATH"), configFromFile.FilePath)

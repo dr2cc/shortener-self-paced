@@ -2,7 +2,7 @@ package jsonstore
 
 import (
 	"app/internal/entity"
-	storage "app/internal/repository"
+	err_repo "app/internal/errors/repository"
 	"bufio"
 	"bytes"
 	"context"
@@ -42,7 +42,7 @@ func (repo *FileRepository) SaveBatch(ctx context.Context, batch []entity.Expand
 	for _, shortURL := range batch {
 		_, err := repo.FindByID(ctx, shortURL.ID)
 		if err == nil {
-			return storage.NewNotUniqueURLError(shortURL, nil)
+			return err_repo.NewNotUniqueURLError(shortURL, nil)
 		}
 	}
 
@@ -76,7 +76,7 @@ func (repo *FileRepository) SaveBatch(ctx context.Context, batch []entity.Expand
 func (repo *FileRepository) Save(ctx context.Context, shortURL entity.ExpandedURL) error {
 	_, err := repo.FindByID(ctx, shortURL.ID)
 	if err == nil {
-		return storage.NewNotUniqueURLError(shortURL, nil)
+		return err_repo.NewNotUniqueURLError(shortURL, nil)
 	}
 
 	data, err := json.Marshal(shortURL)
