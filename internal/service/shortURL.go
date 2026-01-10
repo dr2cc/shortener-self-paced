@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"math/big"
+	"time"
 )
 
 type ShortService struct {
@@ -27,8 +28,27 @@ func NewShortService(repo storage.ShortURL, cfg *config.Config) *ShortService {
 	}
 }
 
+// Функция FindURL находит в хранилище полный URL-адрес по указанному идентификатору.
+// Возвращает заполненную структуру entity.ExpandedURL
+func (sh ShortService) FindURL(ctx context.Context, id string) (entity.ExpandedURL, error) {
+	origURL, err := sh.repo.FindByID(ctx, id)
+	if err != nil {
+		return entity.ExpandedURL{}, err //Shortener
+	}
+	return origURL, nil
+}
+
+// HealthCheck проверяет корректность работы выбранного хранилища
+func (sh ShortService) HealthCheck(ctx context.Context) error {
+	timeout := 5 * time.Second //nolint:gomnd
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	return sh.repo.Check(ctx)
+}
+
 // GenerateIDfromString создает ID (shortURL) из url.
-func (ShortService) GenerateIDfromString(str string) (string, error) {
+// func (ShortService) GenerateIDfromString(str string) (string, error) {
+func GenerateIDfromString(str string) (string, error) {
 	if str == "" {
 		return "", errors.New("empty string to generate id from")
 	}
@@ -57,7 +77,7 @@ func (sh ShortService) FormatShortURL(urlID string) string {
 // Все записи пакета должны содержать OriginalURL(?)
 func (sh ShortService) ShortenBatch(ctx context.Context, batch []entity.ExpandedURL) ([]entity.ExpandedURL, error) {
 	for i, URL := range batch {
-		urlID, err := sh.GenerateIDfromString(URL.OriginalURL)
+		urlID, err := GenerateIDfromString(URL.OriginalURL)
 		if err != nil {
 			return nil, err
 		}
@@ -65,7 +85,7 @@ func (sh ShortService) ShortenBatch(ctx context.Context, batch []entity.Expanded
 		//batch[i].CreatedByID = userID
 	}
 
-	if err := sh.repository.SaveBatch(ctx, batch); err != nil {
+	if err := sh.repo.SaveBatch(ctx, batch); err != nil {
 		return nil, err
 	}
 
@@ -85,13 +105,13 @@ func (sh ShortService) Shorten(ctx context.Context, url string) (entity.Expanded
 	// 	// CreatedByID: userID,
 	// }
 
-	shortURL, err := sh.mapping(url)
+	shortURL, err := Mapping(url)
 	if err != nil {
 		return entity.ExpandedURL{}, err
 	}
 
 	// Пробуем записать в хранилище, с проверкой уникальности (iter13)
-	err = sh.repository.Save(ctx, shortURL)
+	err = sh.repo.Save(ctx, shortURL)
 
 	// "Реакция" на уникальность / не уникальность
 	var notUniqueErr *err_repo.NotUniqueURLError

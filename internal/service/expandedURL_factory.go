@@ -14,8 +14,8 @@ import (
 // ❌ Самостоятельный сервис! Не связан с ShortURL!
 // Тут создаем экземпляр entity.ExpandedURL{} и заполняем в нем поля
 // OriginalURL, ID
-func (sh *Service) mapping(url string) (entity.ExpandedURL, error) {
-	urlID, err := sh.Random.GenerateIDfromString(url)
+func Mapping(url string) (entity.ExpandedURL, error) {
+	urlID, err := GenerateIDfromString(url)
 	if err != nil {
 		return entity.ExpandedURL{}, err
 	}
