@@ -66,35 +66,3 @@ func (h *Handler) InitRoutes(log *slog.Logger) chi.Router {
 
 	return router
 }
-
-// func InitRoutes(service *service.Service, cfg *config.Config, log *slog.Logger) chi.Router {
-// 	router := chi.NewRouter()
-
-// 	router.Use(middleware.RequestID)
-// 	router.Use(middleware.Logger)
-// 	router.Use(mwLogger.New(log))
-// 	router.Use(middleware.Recoverer)
-// 	router.Use(middleware.Compress(flate.BestSpeed))
-
-// 	// ❌ Переделать вызов сервера!! Как в todo-app1
-// 	h := NewHandler(service, cfg)
-
-// 	// Получается service нужен только для работы ручек- передает в них
-// 	// рандомайзер (бизнес-логику), хранилище и конфигурацию
-// 	router.Get("/{id}", h.Redirect)
-// 	router.Post("/", h.ShortenText)
-
-// 	router.Post("/api/shorten", h.ShortenAPI)
-// 	// iter10
-// 	// Добавьте в сервис хендлер GET /ping,
-// 	// который при запросе проверяет соединение с базой данных.
-// 	// При успешной проверке хендлер должен вернуть HTTP-статус 200 OK, при неуспешной — 500 Internal Server Error.
-// 	//
-// 	router.Get("/ping", h.Ping)
-// 	// iter12
-// 	// Добавьте новый хендлер POST /api/shorten/batch,
-// 	// принимающий в теле запроса множество URL для сокращения в формате:
-// 	router.Post("/api/shorten/batch", h.BatchShortenAPI)
-
-// 	return router
-// }
