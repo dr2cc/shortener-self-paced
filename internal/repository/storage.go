@@ -22,6 +22,7 @@ type ShortURL interface {
 }
 
 type Repository struct {
+	// Сервис сокращения URL, со своим функционалом
 	ShortURL
 }
 
@@ -30,12 +31,6 @@ func NewRepository(log *slog.Logger, cfg *config.Config) *Repository {
 		ShortURL: choosingStorage(log, cfg),
 	}
 }
-
-// type ChoosingStorage interface {
-// 	NewPostgresRepo(log *slog.Logger, cfg *config.Config)
-// 	NewFileRepository(cfg *config.Config)
-// 	NewInMemoryRepository()
-// }
 
 func choosingStorage(log *slog.Logger, cfg *config.Config) ShortURL {
 	if cfg.DatabaseDSN != "" {
@@ -46,6 +41,14 @@ func choosingStorage(log *slog.Logger, cfg *config.Config) ShortURL {
 		}
 		return repo
 	}
+	// Ментор считает, что это не отдельный вид хранилища,
+	// а условие, что если есть env или флаг,
+	// то надо попробовать прочитать файл, а по кончании в такой записать.
+	// Судя по условию на Спринт 3, инкремент 11 ментор не прав:
+	// "При отсутствии переменной окружения DATABASE_DSN или флага командной строки -d
+	// или при их пустых значениях вернитесь последовательно к:
+	// хранению сокращённых URL в файле при наличии соответствующей переменной окружения или флага командной строки;
+	// хранению сокращённых URL в памяти."
 	if cfg.FilePath != "" {
 		repo, err := jsonstore.NewFileRepository(cfg.FilePath)
 		if err != nil {

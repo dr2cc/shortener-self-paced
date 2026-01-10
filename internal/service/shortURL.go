@@ -47,7 +47,6 @@ func (sh ShortService) HealthCheck(ctx context.Context) error {
 }
 
 // GenerateIDfromString создает ID (shortURL) из url.
-// func (ShortService) GenerateIDfromString(str string) (string, error) {
 func GenerateIDfromString(str string) (string, error) {
 	if str == "" {
 		return "", errors.New("empty string to generate id from")
@@ -94,17 +93,6 @@ func (sh ShortService) ShortenBatch(ctx context.Context, batch []entity.Expanded
 
 // Shorten сокращает полный URL и возвращает заполненную структуру ExpandedURL
 func (sh ShortService) Shorten(ctx context.Context, url string) (entity.ExpandedURL, error) {
-	// urlID, err := sh.Random.GenerateIDfromString(url)
-	// if err != nil {
-	// 	return entity.ExpandedURL{}, err
-	// }
-
-	// shortURL := entity.ExpandedURL{
-	// 	OriginalURL: url,
-	// 	ID:          urlID,
-	// 	// CreatedByID: userID,
-	// }
-
 	shortURL, err := Mapping(url)
 	if err != nil {
 		return entity.ExpandedURL{}, err

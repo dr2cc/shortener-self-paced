@@ -141,8 +141,6 @@ func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ExpandedURL)
 			ID:          existingID,
 		},
 	}
-
-	// return fmt.Errorf("%s: %w", "23505", err)
 }
 
 // SaveBatch сохраняет несколько URL-адресов.
@@ -160,7 +158,6 @@ func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []entity.Expanded
 	// Указываем имя таблицы и список столбцов в целевой таблице БД.
 	// Таблица называется 'aliases' с соответствующими столбцами.
 	stmt, err := tx.PrepareContext(ctx, pq.CopyIn("aliases", "id", "url", "correlation_id"))
-	//stmt, err := repo.DB.PrepareContext(ctx, pq.CopyIn("aliases", "id", "url", "correlation_id"))
 	if err != nil {
 		return fmt.Errorf("failed to prepare COPY statement: %w", err)
 	}

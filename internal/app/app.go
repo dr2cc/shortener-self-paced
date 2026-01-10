@@ -43,13 +43,6 @@ func Run(cfg *config.Config) {
 	// Создаем объект хранилища, в соответствии с настройками
 	repository := storage.NewRepository(log, cfg)
 	// ↑
-	// | внедряем в бизнес-логику
-	// Use-Case🧹🏦
-	// Считаю, что здесь правильно присвоено значение
-	// структуры RandomStringGenerator (по сути поведение- метод GenerateIDfromString)
-	// а не интерфейса IDGenerator () (интерфейс служит границей между слоями)
-	// randomKey := service.RandomStringGenerator{}
-	// ↑
 	// 2️⃣ Use case (BL - Business Logic Layer, service)
 	// | Здесь внедряем зависимость с repository
 	// ❌ (07.01.26) Убрать такие знаки в service!

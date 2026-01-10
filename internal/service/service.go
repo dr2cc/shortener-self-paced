@@ -33,15 +33,9 @@ import (
 
 // Сервис сокращения URL
 type ShortURL interface {
-	// Функцонал (видимо только обслуживающий работу хендлеров?):
-
-	// // ❌ GenerateIDfromString непосредственно к работе хендлеров не относятся
-	// // Генерация ID из строки URL
-	// GenerateIDfromString(url string) (string, error)
-
-	// FormatShortURL непосредственно к работе хендлеров не относятся, но ему нужна информация из cfg
-	// (единственному, к стати)
+	// Функцонал:
 	// Форматирование ID в результирующую строку
+	// Непосредственно к работе хендлеров не относятся (как и GenerateIDfromString), но ему нужна информация из cfg (единственному!)
 	FormatShortURL(urlID string) string
 	// Мапим URL из запроса в структуру entity.ExpandedURL
 	Shorten(ctx context.Context, url string) (entity.ExpandedURL, error)
@@ -55,7 +49,7 @@ type ShortURL interface {
 }
 
 type Service struct {
-	// Сервис сокращения URL (создает ID (shortURL) из url), со своим функционалом
+	// Сервис сокращения URL, со своим функционалом
 	ShortURL
 }
 
