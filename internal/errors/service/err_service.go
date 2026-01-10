@@ -1,4 +1,4 @@
-package err_service
+package errservice
 
 import (
 	"app/internal/entity"

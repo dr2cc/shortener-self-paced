@@ -1,4 +1,4 @@
-package err_repo
+package errrepo
 
 import "app/internal/entity"
 
