@@ -46,21 +46,6 @@ func (sh ShortService) HealthCheck(ctx context.Context) error {
 	return sh.repo.Check(ctx)
 }
 
-// GenerateIDfromString создает ID (shortURL) из url.
-func GenerateIDfromString(str string) (string, error) {
-	if str == "" {
-		return "", errors.New("empty string to generate id from")
-	}
-
-	hash, err := hashURL(str)
-	if err != nil {
-		return "", err
-	}
-
-	result := stringFromHash(hash)
-	return result, nil
-}
-
 // FormatShortURL форматирование полученного ID (путем конкатенации с BaseURL из cfg)
 // в результирующую строку, возвращаемую запросами POST
 func (sh ShortService) FormatShortURL(urlID string) string {
@@ -120,6 +105,21 @@ func (sh ShortService) Shorten(ctx context.Context, url string) (entity.Expanded
 	}
 
 	return shortURL, nil
+}
+
+// GenerateIDfromString создает ID (shortURL) из url.
+func GenerateIDfromString(str string) (string, error) {
+	if str == "" {
+		return "", errors.New("empty string to generate id from")
+	}
+
+	hash, err := hashURL(str)
+	if err != nil {
+		return "", err
+	}
+
+	result := stringFromHash(hash)
+	return result, nil
 }
 
 // hashURL принимает строку и возвращает 32-битный хеш этой строки
