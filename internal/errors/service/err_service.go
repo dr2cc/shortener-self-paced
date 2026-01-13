@@ -1,7 +1,7 @@
 package errservice
 
 import (
-	"app/internal/entity"
+	"app/internal/domain/link"
 	"fmt"
 )
 
@@ -9,7 +9,7 @@ import (
 // возникшей в процессе работы службы
 type shorteningError struct {
 	Err      error
-	ShortURL entity.ExpandedURL
+	ShortURL link.ExpandedURL
 }
 
 func (err *shorteningError) Error() string {
@@ -21,7 +21,7 @@ func (err *shorteningError) Unwrap() error {
 }
 
 // NewShorteningError добавляет (wraps) к ошибке поле err с дополнительной информацией об URL
-func NewShorteningError(shortURL entity.ExpandedURL, err error) error {
+func NewShorteningError(shortURL link.ExpandedURL, err error) error {
 	return &shorteningError{
 		Err:      err,
 		ShortURL: shortURL,

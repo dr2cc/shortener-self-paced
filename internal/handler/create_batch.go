@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"app/internal/entity"
+	"app/internal/domain/link"
 	"app/pkg/response"
 	"encoding/json"
 	"net/http"
@@ -33,7 +33,7 @@ func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	batch := make([]entity.ExpandedURL, len(input))
+	batch := make([]link.ExpandedURL, len(input))
 
 	for i, shortURLInput := range input {
 		if shortURLInput.OriginalURL == "" {
@@ -41,7 +41,7 @@ func (h *Handler) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Здесь в batch записываются все данные полученные из запроса клиента
-		batch[i] = entity.ExpandedURL{
+		batch[i] = link.ExpandedURL{
 			OriginalURL:   shortURLInput.OriginalURL,
 			CorrelationID: shortURLInput.CorrelationID,
 		}

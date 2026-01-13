@@ -3,7 +3,8 @@ package service
 
 import (
 	"app/internal/config"
-	"app/internal/entity"
+	"app/internal/domain/link"
+	"app/internal/generator"
 	storage "app/internal/repository"
 	"context"
 )
@@ -38,14 +39,14 @@ type ShortURL interface {
 	// Непосредственно к работе хендлеров не относятся (как и GenerateIDfromString), но ему нужна информация из cfg (единственному!)
 	FormatShortURL(urlID string) string
 	// Мапим URL из запроса в структуру entity.ExpandedURL
-	Shorten(ctx context.Context, url string) (entity.ExpandedURL, error)
+	CreateShortURL(ctx context.Context, url string) (link.ExpandedURL, error)
 	// Мапим массив входящих данных в []entity.ExpandedURL
-	ShortenBatch(ctx context.Context, batch []entity.ExpandedURL) ([]entity.ExpandedURL, error)
+	ShortenBatch(ctx context.Context, batch []link.ExpandedURL) ([]link.ExpandedURL, error)
 	// Проверяем корректность работы выбранного хранилища
 	HealthCheck(ctx context.Context) error
 	// Находит в хранилище полный URL-адрес по указанному идентификатору.
 	// Возвращает заполненную структуру entity.ExpandedURL
-	FindURL(ctx context.Context, id string) (entity.ExpandedURL, error)
+	FindURL(ctx context.Context, id string) (link.ExpandedURL, error)
 }
 
 type Service struct {
@@ -54,8 +55,9 @@ type Service struct {
 }
 
 // Вызывается из app
-func NewService(repos *storage.Repository, cfg *config.Config) *Service {
+func NewService(repos *storage.Repository, gen *generator.StringGenerator, cfg *config.Config) *Service {
+
 	return &Service{
-		ShortURL: NewShortService(repos.ShortURL, cfg),
+		ShortURL: NewShortService(repos.ShortURL, gen, cfg),
 	}
 }

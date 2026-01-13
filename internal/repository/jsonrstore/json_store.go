@@ -1,7 +1,7 @@
 package jsonstore
 
 import (
-	"app/internal/entity"
+	"app/internal/domain/link"
 	err_repo "app/internal/errors/repository"
 	"bufio"
 	"bytes"
@@ -38,7 +38,7 @@ func NewFileRepository(filePath string) (*FileRepository, error) {
 
 // SaveBatch сохраняет несколько URL-адресов.
 // Проверяет уникальность URL-адресов и сохраняет их.
-func (repo *FileRepository) SaveBatch(ctx context.Context, batch []entity.ExpandedURL) error {
+func (repo *FileRepository) SaveBatch(ctx context.Context, batch []link.ExpandedURL) error {
 	for _, shortURL := range batch {
 		_, err := repo.FindByID(ctx, shortURL.ID)
 		if err == nil {
@@ -73,7 +73,7 @@ func (repo *FileRepository) SaveBatch(ctx context.Context, batch []entity.Expand
 }
 
 // Save проверяет уникальность URL-адреса и сохраняет его
-func (repo *FileRepository) Save(ctx context.Context, shortURL entity.ExpandedURL) error {
+func (repo *FileRepository) Save(ctx context.Context, shortURL link.ExpandedURL) error {
 	_, err := repo.FindByID(ctx, shortURL.ID)
 	if err == nil {
 		return err_repo.NewNotUniqueURLError(shortURL, nil)
@@ -104,29 +104,29 @@ func (repo *FileRepository) Save(ctx context.Context, shortURL entity.ExpandedUR
 
 // FindByID находит URL по идентификатору.
 // Считывает файл строка за строкой и возвращает URL, соответствующий указанному идентификатору.
-func (repo *FileRepository) FindByID(_ context.Context, id string) (entity.ExpandedURL, error) {
+func (repo *FileRepository) FindByID(_ context.Context, id string) (link.ExpandedURL, error) {
 	repo.mutex.RLock()
 	defer repo.mutex.RUnlock()
 
 	if _, err := repo.file.Seek(0, io.SeekStart); err != nil {
-		return entity.ExpandedURL{}, err
+		return link.ExpandedURL{}, err
 	}
 
-	var entry entity.ExpandedURL
+	var entry link.ExpandedURL
 
 	scanner := bufio.NewScanner(repo.file)
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if err := json.NewDecoder(bytes.NewReader(line)).Decode(&entry); err != nil {
-			return entity.ExpandedURL{}, err
+			return link.ExpandedURL{}, err
 		}
 		if entry.ID == id {
 			return entry, nil
 		}
 	}
 
-	return entity.ExpandedURL{}, errors.New("can't find full url by id")
+	return link.ExpandedURL{}, errors.New("can't find full url by id")
 }
 
 // Close closes file.

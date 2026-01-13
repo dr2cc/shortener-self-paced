@@ -3,6 +3,7 @@ package app
 
 import (
 	"app/internal/config"
+	"app/internal/generator"
 	"app/internal/handler"
 	storage "app/internal/repository"
 	"app/internal/server"
@@ -46,7 +47,8 @@ func Run(cfg *config.Config) {
 	// 2️⃣ Use case (BL - Business Logic Layer, service)
 	// | Здесь внедряем зависимость с repository
 	// ❌ (07.01.26) Убрать такие знаки в service!
-	services := service.NewService(repository, cfg)
+	generator := generator.NewStringGenerator()
+	services := service.NewService(repository, generator, cfg)
 	// ↑
 	// 1️⃣ Handler (PL - Presentation Layer, controller)
 	// | Здесь внедряем зависимость с services

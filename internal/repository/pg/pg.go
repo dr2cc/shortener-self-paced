@@ -2,7 +2,7 @@ package pg
 
 import (
 	"app/internal/config"
-	"app/internal/entity"
+	"app/internal/domain/link"
 	err_repo "app/internal/errors/repository"
 	"app/pkg/logger/sl"
 	"context"
@@ -85,7 +85,7 @@ func checkTab(log *slog.Logger, repo *PostgresRepo) error {
 }
 
 // Save проверяет уникальность URL-адреса и сохраняет его
-func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ExpandedURL) error {
+func (repo *PostgresRepo) Save(ctx context.Context, shortURL link.ExpandedURL) error {
 	const op = "repository.pg.Save" // Имя текущей функции для логов и ошибок
 	url := shortURL.OriginalURL
 	alias := shortURL.ID
@@ -136,7 +136,7 @@ func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ExpandedURL)
 	// Возвращаем пользовательскую ошибку с найденным ID
 	return &err_repo.NotUniqueURLError{
 		Err: nil,
-		ShortURL: entity.ExpandedURL{
+		ShortURL: link.ExpandedURL{
 			OriginalURL: url,
 			ID:          existingID,
 		},
@@ -145,7 +145,7 @@ func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ExpandedURL)
 
 // SaveBatch сохраняет несколько URL-адресов.
 // Проверяет уникальность URL-адресов и сохраняет их.
-func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []entity.ExpandedURL) error {
+func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []link.ExpandedURL) error {
 	// 1. Начинаем транзакцию с контекстом
 	// Это гарантирует, что все операции COPY выполняются в рамках одного соединения.
 	tx, err := repo.DB.BeginTx(ctx, nil)
@@ -193,8 +193,8 @@ func (repo *PostgresRepo) Check(ctx context.Context) error {
 }
 
 // FindByID находит URL по идентификатору.
-func (repo *PostgresRepo) FindByID(ctx context.Context, id string) (entity.ExpandedURL, error) {
-	var ent entity.ExpandedURL
+func (repo *PostgresRepo) FindByID(ctx context.Context, id string) (link.ExpandedURL, error) {
+	var ent link.ExpandedURL
 	err := repo.DB.QueryRowContext(
 		ctx,
 		"select url, id from aliases where id=$1",

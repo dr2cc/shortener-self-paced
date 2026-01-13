@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"app/internal/entity"
+	"app/internal/domain/link"
 	err_repo "app/internal/errors/repository"
 	"encoding/json"
 	"errors"
@@ -14,7 +14,7 @@ type ResponseAPI struct {
 	Result string `json:"result"`
 }
 
-func apiPublicationResult(w http.ResponseWriter, h *Handler, shortURL entity.ExpandedURL, status int) {
+func apiPublicationResult(w http.ResponseWriter, h *Handler, shortURL link.ExpandedURL, status int) {
 	res := ResponseAPI{
 		Result: h.service.FormatShortURL(shortURL.ID),
 	}
@@ -36,7 +36,7 @@ func apiPublicationResult(w http.ResponseWriter, h *Handler, shortURL entity.Exp
 
 // Назову json post ручку ShortenAPI - обычно при помощи json создают интерфейс
 func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
-	var v entity.ExpandedURL
+	var v link.ExpandedURL
 
 	reader, err := getDecompressedReader(r)
 	if err != nil {
@@ -63,7 +63,7 @@ func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	// Если нет ошибок и значение url уникально, то err == nil
 	// Если url не уникален, то
 	// err == entity.ExpandedURL{OriginalURL: url, ID:urlID},  &shorteningError{Err:err, ShortURL: shortURL}
-	shortURL, err := h.service.Shorten(r.Context(), v.OriginalURL)
+	shortURL, err := h.service.CreateShortURL(r.Context(), v.OriginalURL)
 
 	// Iter13 генерация нужного ответа - 409
 	var notUniqueErr *err_repo.NotUniqueURLError
@@ -80,7 +80,7 @@ func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	apiPublicationResult(w, h, shortURL, http.StatusCreated)
 }
 
-func publicationResult(w http.ResponseWriter, h *Handler, shortURL entity.ExpandedURL, status int) {
+func publicationResult(w http.ResponseWriter, h *Handler, shortURL link.ExpandedURL, status int) {
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(status)
 	shortenedURL := h.service.FormatShortURL(shortURL.ID)
@@ -114,9 +114,11 @@ func (h *Handler) ShortenText(w http.ResponseWriter, r *http.Request) {
 	// Если нет ошибок и значение url уникально, то err == nil
 	// Если url не уникален, то
 	// err == entity.ExpandedURL{OriginalURL: url, ID:urlID},  &shorteningError{Err:err, ShortURL: shortURL}
-	shortURL, err := h.service.Shorten(r.Context(), string(url)) // , userID
+	shortURL, err := h.service.CreateShortURL(r.Context(), string(url)) // , userID
 
-	// iter13. Проверка на уникальность
+	// ❌Явное нарушение слоев!! Проверка на уникальность. iter13
+	// Эта проверка дело сервисов!!
+	//
 	// Сама проверка в Shorten, а точнеее в методе Save (при записи в хранилище).
 	// Здесь генерируем нужный ответ - 409
 	var notUniqueErr *err_repo.NotUniqueURLError
