@@ -42,7 +42,7 @@ func (repo *InMemoryRepository) SaveBatch(_ context.Context, batch []link.Expand
 	return nil
 }
 
-// Exists проверяет существование shortURL в базе.
+// ❌ Exists проверяет существование shortURL в базе.
 // ❗Возвращая ошибку (в данном случае всегда равную nil), мы выполняем контракт интерфейса:
 // интерфейс ShortURL "обещает", что метод может вернуть ошибку,
 // значит сервис обязан уважать этот контракт!
@@ -66,7 +66,8 @@ func (repo *InMemoryRepository) Exists(_ context.Context, shortURL string) (bool
 
 // Save проверяет уникальность URL-адреса и сохраняет его
 func (repo *InMemoryRepository) Save(_ context.Context, shortURL link.ExpandedURL) error {
-	// repo.mutex.RLock()
+	repo.mutex.RLock()
+	defer repo.mutex.RUnlock()
 	// // "Comma-ok" idiom - используется в Go везде, где операция может иметь два возможных исхода, которые невозможно однозначно интерпретировать,
 	// // основываясь только на возвращаемом значении:
 	// // 1. Поиск/Извлечение: (Map, Каналы, reflect). Проверка наличия элемента или того, что канал не закрыт.
@@ -76,8 +77,10 @@ func (repo *InMemoryRepository) Save(_ context.Context, shortURL link.ExpandedUR
 	// // Здесь мы проверяем наличие ключа (ID).
 	// // Если он уже есть, значит это дубль
 	// // ok == true
-	// _, ok := repo.storage[shortURL.ID]
-	// repo.mutex.RUnlock()
+	// _, ok := repo.links[shortURL.ID]
+
+	// // В defer выше
+	// //repo.mutex.RUnlock()
 
 	// // Если выше мы уже нашли такой ключ, то вернем не nil, а
 	// // &NotUniqueURLError{
@@ -85,12 +88,26 @@ func (repo *InMemoryRepository) Save(_ context.Context, shortURL link.ExpandedUR
 	// //	ShortURL: shortURL,
 	// // }
 	// if ok {
-	// 	return ok, err_repo.NewNotUniqueURLError(shortURL, nil)
+	// 	return err_repo.NewNotUniqueURLError(shortURL, nil)
 	// }
 
-	repo.mutex.Lock()
+	// repo.mutex.Lock()
+	// repo.links[shortURL.ID] = shortURL
+	// repo.mutex.Unlock()
+
+	// 1. Проверка на конфликт URL (бизнес-логика Iter 13)
+	for _, existing := range repo.links {
+		if existing.OriginalURL == shortURL.OriginalURL {
+			return err_repo.NewNotUniqueURLError(existing, nil)
+		}
+	}
+
+	// 2. Проверка на коллизию ID (техническая проверка рандома)
+	if _, exists := repo.links[shortURL.ID]; exists {
+		return err_repo.ErrIDCollision // Специальная ошибка для повтора генерации
+	}
+
 	repo.links[shortURL.ID] = shortURL
-	repo.mutex.Unlock()
 
 	return nil
 }

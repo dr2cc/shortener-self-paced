@@ -116,10 +116,10 @@ func (h *Handler) ShortenText(w http.ResponseWriter, r *http.Request) {
 	// err == entity.ExpandedURL{OriginalURL: url, ID:urlID},  &shorteningError{Err:err, ShortURL: shortURL}
 	shortURL, err := h.service.CreateShortURL(r.Context(), string(url)) // , userID
 
-	// ❌Явное нарушение слоев!! Проверка на уникальность. iter13
-	// Эта проверка дело сервисов!!
+	// ✔️ Проверка на уникальность. iter13
+	// ♊ пишет, что это правильно!
 	//
-	// Сама проверка в Shorten, а точнеее в методе Save (при записи в хранилище).
+	// Сама проверка в методе Save (при записи в хранилище).
 	// Здесь генерируем нужный ответ - 409
 	var notUniqueErr *err_repo.NotUniqueURLError
 	if errors.As(err, &notUniqueErr) {

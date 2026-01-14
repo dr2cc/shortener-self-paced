@@ -3,6 +3,7 @@ package service
 import (
 	"app/internal/config"
 	"app/internal/domain/link"
+	err_repo "app/internal/errors/repository"
 	"app/internal/generator"
 	storage "app/internal/repository"
 	"context"
@@ -116,30 +117,51 @@ func (sh *ShortService) CreateShortURL(ctx context.Context, originalURL string) 
 		// 1. Генерируем случайный ID
 		newID := sh.generator.NewRandomString(idLength)
 
-		// 2. Проверяем в базе, не занят ли он (защита от коллизий)
-		exists, err := sh.repo.Exists(ctx, newID)
-		if err != nil {
-			// "Защитное программирование":
-			// Для in-memory мы сюда не попадем.
-			// Но если заменим базу на Postgres — этот код спасет нас от краша при сбое сети.
-			return link.ExpandedURL{}, err
+		// 	// 2. Проверяем в базе, не занят ли он (защита от коллизий)
+		// 	exists, err := sh.repo.Exists(ctx, newID)
+		// 	if err != nil {
+		// 		// "Защитное программирование":
+		// 		// Для in-memory мы сюда не попадем.
+		// 		// Но если заменим базу на Postgres — этот код спасет нас от краша при сбое сети.
+		// 		return link.ExpandedURL{}, err
+		// 	}
+
+		// 	// ✅ Здесь обработать iter13 (проверка на уникальность)?
+		// 	// 14.01.26 создает ID новый, опять глючит Postman
+		// 	if !exists {
+		// 		// 3. Если свободен — создаем сущность через фабрику
+		// 		newLink := link.New(originalURL, newID)
+
+		// 		// 4. Сохраняем
+		// 		if err := sh.repo.Save(ctx, newLink); err != nil {
+		// 			return link.ExpandedURL{}, err
+		// 		}
+		// 		return newLink, nil
+		// 	}
+		// }
+
+		// return link.ExpandedURL{}, errors.New("could not generate unique ID")
+		newLink := link.New(originalURL, newID)
+
+		err := sh.repo.Save(ctx, newLink)
+		if err == nil {
+			return newLink, nil // Успех
 		}
 
-		// ✅ Здесь обработать iter13 (проверка на уникальность)?
-		// 13.01.26 создает ID новый, опять глючит Postman
-		if !exists {
-			// 3. Если свободен — создаем сущность через фабрику
-			newLink := link.New(originalURL, newID)
-
-			// 4. Сохраняем
-			if err := sh.repo.Save(ctx, newLink); err != nil {
-				return link.ExpandedURL{}, err
-			}
-			return newLink, nil
+		// Если это конфликт URL — сразу выходим и отдаем 409
+		var notUniqueErr *err_repo.NotUniqueURLError
+		if errors.As(err, &notUniqueErr) {
+			return notUniqueErr.ShortURL, err
 		}
+
+		// Если это коллизия ID — идем на следующую итерацию цикла (i++)
+		if errors.Is(err, err_repo.ErrIDCollision) {
+			continue
+		}
+
+		return link.ExpandedURL{}, err
 	}
-
-	return link.ExpandedURL{}, errors.New("could not generate unique ID")
+	return link.ExpandedURL{}, err_repo.ErrGenerationFailed
 }
 
 // GenerateIDfromString создает ID (shortURL) из url.
