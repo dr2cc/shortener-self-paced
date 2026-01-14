@@ -117,6 +117,9 @@ func (sh *ShortService) CreateShortURL(ctx context.Context, originalURL string) 
 		// 1. Генерируем случайный ID
 		newID := sh.generator.NewRandomString(idLength)
 
+		// ✔️ 3. Пример «уважения» контракта в 2026 году
+		//Ваш сервис должен выглядеть так (идиоматичный Go):
+
 		// 	// 2. Проверяем в базе, не занят ли он (защита от коллизий)
 		// 	exists, err := sh.repo.Exists(ctx, newID)
 		// 	if err != nil {
