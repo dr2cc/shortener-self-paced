@@ -53,7 +53,7 @@ func (sh ShortService) FormatShortURL(urlID string) string {
 	return fmt.Sprintf("%s/%s", sh.cfg.BaseURL, urlID)
 }
 
-// ❌ Уже на входе ошибка слоев! Мы получаем нашу готовую модель данных.
+// ❌ ShortenBatch - уже на входе ошибка слоев! Мы получаем нашу готовую модель данных.
 // Получается ее готовит слой handlers!!!
 // 01.01.2026 - должен использовать mapping
 // и получать на вход необработанную структуру из запроса.
@@ -125,8 +125,8 @@ func (sh *ShortService) CreateShortURL(ctx context.Context, originalURL string) 
 			return link.ExpandedURL{}, err
 		}
 
-		// ❌ Здесь обработать iter13 (проверка на уникальность)
-		// 13.01.26 создает сколь угодно раз!
+		// ❌ Здесь обработать iter13 (проверка на уникальность).
+		// 13.01.26 создает ID сколь угодно раз!
 		if !exists {
 			// 3. Если свободен — создаем сущность через фабрику
 			newLink := link.New(originalURL, newID)
