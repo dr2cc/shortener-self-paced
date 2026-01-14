@@ -125,8 +125,8 @@ func (sh *ShortService) CreateShortURL(ctx context.Context, originalURL string) 
 			return link.ExpandedURL{}, err
 		}
 
-		// ❌ Здесь обработать iter13 (проверка на уникальность).
-		// 13.01.26 создает ID сколь угодно раз!
+		// ✅ Здесь обработать iter13 (проверка на уникальность)?
+		// 13.01.26 создает ID новый, опять глючит Postman
 		if !exists {
 			// 3. Если свободен — создаем сущность через фабрику
 			newLink := link.New(originalURL, newID)
