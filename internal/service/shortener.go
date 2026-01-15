@@ -117,33 +117,7 @@ func (sh *ShortService) CreateShortURL(ctx context.Context, originalURL string) 
 		// 1. Генерируем случайный ID
 		newID := sh.generator.NewRandomString(idLength)
 
-		// ✔️ 3. Пример «уважения» контракта в 2026 году
-		//Ваш сервис должен выглядеть так (идиоматичный Go):
-
-		// 	// 2. Проверяем в базе, не занят ли он (защита от коллизий)
-		// 	exists, err := sh.repo.Exists(ctx, newID)
-		// 	if err != nil {
-		// 		// "Защитное программирование":
-		// 		// Для in-memory мы сюда не попадем.
-		// 		// Но если заменим базу на Postgres — этот код спасет нас от краша при сбое сети.
-		// 		return link.ExpandedURL{}, err
-		// 	}
-
-		// 	// ✅ Здесь обработать iter13 (проверка на уникальность)?
-		// 	// 14.01.26 создает ID новый, опять глючит Postman
-		// 	if !exists {
-		// 		// 3. Если свободен — создаем сущность через фабрику
-		// 		newLink := link.New(originalURL, newID)
-
-		// 		// 4. Сохраняем
-		// 		if err := sh.repo.Save(ctx, newLink); err != nil {
-		// 			return link.ExpandedURL{}, err
-		// 		}
-		// 		return newLink, nil
-		// 	}
-		// }
-
-		// return link.ExpandedURL{}, errors.New("could not generate unique ID")
+		// Создаем сущность через фабрику
 		newLink := link.New(originalURL, newID)
 
 		err := sh.repo.Save(ctx, newLink)
@@ -162,8 +136,13 @@ func (sh *ShortService) CreateShortURL(ctx context.Context, originalURL string) 
 			continue
 		}
 
+		// "Защитное программирование".
+		// Эта ошибка на тот случай, если все наши if не сработали.
+		// При in-memory хранилище мы сюда не попадем.
+		// Но если база будет Postgres — этот код спасет нас, например от краша при сбое сети.
 		return link.ExpandedURL{}, err
 	}
+	// Эта ошибка возникнет если сервису не удалось создать уникальный ID после максимально допустимого количества попыток
 	return link.ExpandedURL{}, err_repo.ErrGenerationFailed
 }
 

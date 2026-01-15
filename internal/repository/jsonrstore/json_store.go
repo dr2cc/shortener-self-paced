@@ -74,32 +74,59 @@ func (repo *FileRepository) SaveBatch(ctx context.Context, batch []link.Expanded
 
 // Save проверяет уникальность URL-адреса и сохраняет его
 func (repo *FileRepository) Save(ctx context.Context, shortURL link.ExpandedURL) error {
-	_, err := repo.FindByID(ctx, shortURL.ID)
-	if err == nil {
-		return err_repo.NewNotUniqueURLError(shortURL, nil)
-	}
+	// _, err := repo.FindByID(ctx, shortURL.ID)
+	// if err == nil {
+	// 	return err_repo.NewNotUniqueURLError(shortURL, nil)
+	// }
 
-	data, err := json.Marshal(shortURL)
-	if err != nil {
-		return err
-	}
+	// data, err := json.Marshal(shortURL)
+	// if err != nil {
+	// 	return err
+	// }
 
-	repo.mutex.Lock()
+	// repo.mutex.Lock()
+	// defer repo.mutex.Unlock()
+
+	// if _, errWrite := repo.writer.Write(data); errWrite != nil {
+	// 	return errWrite
+	// }
+
+	// if errWriteByte := repo.writer.WriteByte('\n'); errWriteByte != nil {
+	// 	return errWriteByte
+	// }
+
+	// if errFlush := repo.writer.Flush(); errFlush != nil {
+	// 	return errFlush
+	// }
+
+	//return nil
+
+	repo.mutex.Lock() // Одна блокировка на всё
 	defer repo.mutex.Unlock()
 
-	if _, errWrite := repo.writer.Write(data); errWrite != nil {
-		return errWrite
+	// 1. Сначала ищем дубликат именно по OriginalURL (Iter 13)
+	if _, err := repo.file.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+	scanner := bufio.NewScanner(repo.file)
+	for scanner.Scan() {
+		var entry link.ExpandedURL
+		json.Unmarshal(scanner.Bytes(), &entry)
+		if entry.OriginalURL == shortURL.OriginalURL {
+			// Если нашли URL — возвращаем 409 и старую запись
+			return err_repo.NewNotUniqueURLError(entry, nil)
+		}
+		if entry.ID == shortURL.ID {
+			return err_repo.ErrIDCollision // Техническая коллизия ID
+		}
 	}
 
-	if errWriteByte := repo.writer.WriteByte('\n'); errWriteByte != nil {
-		return errWriteByte
+	// 2. Если всё уникально — пишем в конец
+	data, _ := json.Marshal(shortURL)
+	if _, err := repo.writer.Write(append(data, '\n')); err != nil {
+		return err
 	}
-
-	if errFlush := repo.writer.Flush(); errFlush != nil {
-		return errFlush
-	}
-
-	return nil
+	return repo.writer.Flush()
 }
 
 // FindByID находит URL по идентификатору.
