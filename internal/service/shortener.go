@@ -19,7 +19,8 @@ type ShortService struct {
 	// "Общение" с репозиторием, сервиса сокращения URL
 	repo      storage.ShortURL
 	generator *generator.StringGenerator
-	cfg       *config.Config
+	cfg       *config.Config // 🤷‍♂️ Нужно передавать только, что здесь нужно
+	// (cfg может очень большим). Или только базовый URL или (видимо  лучше) структура в которую смапали cfg (только нужное поле)
 }
 
 func NewShortService(repo storage.ShortURL, gen *generator.StringGenerator, cfg *config.Config) *ShortService {

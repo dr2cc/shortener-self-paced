@@ -42,7 +42,7 @@ type ShortURL interface {
 	CreateShortURL(ctx context.Context, url string) (link.ExpandedURL, error)
 	// Мапим массив входящих данных в []entity.ExpandedURL
 	ShortenBatch(ctx context.Context, batch []link.ExpandedURL) ([]link.ExpandedURL, error)
-	// Проверяем корректность работы выбранного хранилища
+	// ❗🤷‍♂️ Отдельный сервис! Проверяем корректность работы выбранного хранилища - никак не относится к сокращателю!!
 	HealthCheck(ctx context.Context) error
 	// Находит в хранилище полный URL-адрес по указанному идентификатору.
 	// Возвращает заполненную структуру entity.ExpandedURL

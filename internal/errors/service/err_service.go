@@ -12,6 +12,7 @@ type shorteningError struct {
 	ShortURL link.ExpandedURL
 }
 
+// 🤷‍♂️ Через errors.New --> список ошибок(?)
 func (err *shorteningError) Error() string {
 	return fmt.Sprintf("error while shortening: %v", err.Err)
 }

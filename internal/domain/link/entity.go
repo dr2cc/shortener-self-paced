@@ -6,6 +6,8 @@ package link
 
 // ExpandedURL (ex. ShortURL) - главная сущность сокращателя ссылок, содеожащая всю информацию
 // необходимую для работы с URL
+// 🤷‍♂️ файл переименовать в dto и переместить в пакет dto
+// Так как он появляется в handler, то не нужно делать приватным и domain
 type ExpandedURL struct {
 	OriginalURL   string `json:"url"`            // "url" - по заданию на инкремент 7, так называется ключ в JSON запросе
 	ID            string `json:"id"`             // уникальный идентификатор (alias) для OriginalURL
