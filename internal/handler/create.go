@@ -34,9 +34,14 @@ func apiPublicationResult(w http.ResponseWriter, h *Handler, expandedURL link.Ex
 	}
 }
 
+// Локальная структура только для парсинга запроса
+type shortenRequest struct {
+	URL string `json:"url"`
+}
+
 // Назову json post ручку ShortenAPI - обычно при помощи json создают интерфейс
 func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
-	var v link.ExpandedURL
+	var v shortenRequest
 
 	reader, err := getDecompressedReader(r)
 	if err != nil {
@@ -53,7 +58,7 @@ func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	// Так как анмарщаллинг происходит с данными в ExpandedURL,
 	// то структурный тег поля OriginalURL в ExpandedURL ("url")
 	// должен совпадать с ключем "url" запроса, иначе будет "url required"
-	if v.OriginalURL == "" {
+	if v.URL == "" {
 		http.Error(w, "url required", http.StatusBadRequest)
 		return
 	}
@@ -61,7 +66,7 @@ func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	// Если нет ошибок и значение url уникально, то err == nil
 	// Если url не уникален, то
 	// err == entity.ExpandedURL{OriginalURL: url, ID:urlID},  &shorteningError{Err:err, ShortURL: shortURL}
-	expandedURL, err := h.service.CreateShortURL(r.Context(), v.OriginalURL)
+	expandedURL, err := h.service.CreateShortURL(r.Context(), v.URL)
 
 	// Iter13 генерация нужного ответа - 409
 	var notUniqueErr *err_repo.NotUniqueURLError
