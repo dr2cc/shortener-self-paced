@@ -14,9 +14,9 @@ type ResponseAPI struct {
 	Result string `json:"result"`
 }
 
-func apiPublicationResult(w http.ResponseWriter, h *Handler, shortURL link.ExpandedURL, status int) {
+func apiPublicationResult(w http.ResponseWriter, h *Handler, expandedURL link.ExpandedURL, status int) {
 	res := ResponseAPI{
-		Result: h.service.FormatShortURL(shortURL.ID),
+		Result: h.service.FormatShortURL(expandedURL.ID),
 	}
 
 	// marshalling - сортировка (сериаоизация) в json
@@ -50,25 +50,23 @@ func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Так как анмарщаллинг происходит с данными в entity.ExpandedURL (ex. ShortURL),
-	// то структурный тег поля OriginalURL в entity.ExpandedURL ("url")
+	// Так как анмарщаллинг происходит с данными в ExpandedURL,
+	// то структурный тег поля OriginalURL в ExpandedURL ("url")
 	// должен совпадать с ключем "url" запроса, иначе будет "url required"
 	if v.OriginalURL == "" {
 		http.Error(w, "url required", http.StatusBadRequest)
 		return
 	}
 
-	//userID := h.getUserID(r)
-
 	// Если нет ошибок и значение url уникально, то err == nil
 	// Если url не уникален, то
 	// err == entity.ExpandedURL{OriginalURL: url, ID:urlID},  &shorteningError{Err:err, ShortURL: shortURL}
-	shortURL, err := h.service.CreateShortURL(r.Context(), v.OriginalURL)
+	expandedURL, err := h.service.CreateShortURL(r.Context(), v.OriginalURL)
 
 	// Iter13 генерация нужного ответа - 409
 	var notUniqueErr *err_repo.NotUniqueURLError
 	if errors.As(err, &notUniqueErr) {
-		apiPublicationResult(w, h, shortURL, http.StatusConflict)
+		apiPublicationResult(w, h, expandedURL, http.StatusConflict)
 		return
 	}
 
@@ -77,18 +75,19 @@ func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiPublicationResult(w, h, shortURL, http.StatusCreated)
+	apiPublicationResult(w, h, expandedURL, http.StatusCreated)
 }
 
-func publicationResult(w http.ResponseWriter, h *Handler, shortURL link.ExpandedURL, status int) {
+func publicationResult(w http.ResponseWriter, h *Handler, expandedURL link.ExpandedURL, status int) {
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(status)
-	shortenedURL := h.service.FormatShortURL(shortURL.ID)
-	if _, err := w.Write([]byte(shortenedURL)); err != nil {
+	content := h.service.FormatShortURL(expandedURL.ID)
+	if _, err := w.Write([]byte(content)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
+// ❌ 18.01.26 не пойму как мой ShortenText выполняет структурирование (маппинг) в ExpandedURL ??
 func (h *Handler) ShortenText(w http.ResponseWriter, r *http.Request) {
 	// Получается этого хватает, а все остальное делает
 	// chi..Use(middleware.Compress ??!
@@ -109,12 +108,14 @@ func (h *Handler) ShortenText(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// userID := h.getUserID(r)
-
 	// Если нет ошибок и значение url уникально, то err == nil
 	// Если url не уникален, то
 	// err == entity.ExpandedURL{OriginalURL: url, ID:urlID},  &shorteningError{Err:err, ShortURL: shortURL}
-	shortURL, err := h.service.CreateShortURL(r.Context(), string(url)) // , userID
+	expandedURL, err := h.service.CreateShortURL(r.Context(), string(url)) // , userID
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	// ✔️ Проверка на уникальность. iter13
 	// ♊ пишет, что это правильно!
@@ -123,14 +124,9 @@ func (h *Handler) ShortenText(w http.ResponseWriter, r *http.Request) {
 	// Здесь генерируем нужный ответ - 409
 	var notUniqueErr *err_repo.NotUniqueURLError
 	if errors.As(err, &notUniqueErr) {
-		publicationResult(w, h, shortURL, http.StatusConflict)
+		publicationResult(w, h, expandedURL, http.StatusConflict)
 		return
 	}
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	publicationResult(w, h, shortURL, http.StatusCreated)
+	publicationResult(w, h, expandedURL, http.StatusCreated)
 }

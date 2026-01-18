@@ -47,21 +47,17 @@ func (h *Handler) InitRoutes(log *slog.Logger) chi.Router {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.Compress(flate.BestSpeed))
 
-	// Получается service нужен только для работы ручек- передает в них
-	// рандомайзер (бизнес-логику), хранилище и конфигурацию
 	router.Get("/{id}", h.Redirect)
 	router.Post("/", h.ShortenText)
-
 	router.Post("/api/shorten", h.ShortenAPI)
+	// 🤷‍♂️ HealthCheck это другой сервис (не shortener!)
 	// iter10
 	// Добавьте в сервис хендлер GET /ping,
 	// который при запросе проверяет соединение с базой данных.
 	// При успешной проверке хендлер должен вернуть HTTP-статус 200 OK, при неуспешной — 500 Internal Server Error.
 	//
 	router.Get("/ping", h.Ping)
-	// iter12
-	// Добавьте новый хендлер POST /api/shorten/batch,
-	// принимающий в теле запроса множество URL для сокращения в формате:
+	// iter12 - хендлер POST /api/shorten/batch,
 	router.Post("/api/shorten/batch", h.BatchShortenAPI)
 
 	return router

@@ -41,6 +41,7 @@ func (sh ShortService) FindURL(ctx context.Context, id string) (link.ExpandedURL
 	return origURL, nil
 }
 
+// 🤷‍♂️ Другой сервис!
 // HealthCheck проверяет корректность работы выбранного хранилища
 func (sh ShortService) HealthCheck(ctx context.Context) error {
 	timeout := 5 * time.Second //nolint:gomnd
