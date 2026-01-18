@@ -49,16 +49,10 @@ func (h *Handler) InitRoutes(log *slog.Logger) chi.Router {
 
 	router.Get("/{id}", h.Redirect)
 	router.Post("/", h.ShortenText)
-	router.Post("/api/shorten", h.ShortenAPI)
+	router.Post("/api/shorten", h.ShortenAPI) // iter7
 	// 🤷‍♂️ HealthCheck это другой сервис (не shortener!)
-	// iter10
-	// Добавьте в сервис хендлер GET /ping,
-	// который при запросе проверяет соединение с базой данных.
-	// При успешной проверке хендлер должен вернуть HTTP-статус 200 OK, при неуспешной — 500 Internal Server Error.
-	//
-	router.Get("/ping", h.Ping)
-	// iter12 - хендлер POST /api/shorten/batch,
-	router.Post("/api/shorten/batch", h.BatchShortenAPI)
+	router.Get("/ping", h.Ping)                          // iter10
+	router.Post("/api/shorten/batch", h.BatchShortenAPI) // iter12
 
 	return router
 }

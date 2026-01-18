@@ -89,8 +89,7 @@ func publicationResult(w http.ResponseWriter, h *Handler, expandedURL link.Expan
 
 // ❌ 18.01.26 не пойму как мой ShortenText выполняет структурирование (маппинг) в ExpandedURL ??
 func (h *Handler) ShortenText(w http.ResponseWriter, r *http.Request) {
-	// Получается этого хватает, а все остальное делает
-	// chi..Use(middleware.Compress ??!
+	// 1️⃣ Принимаем данные от клиента
 	reader, err := getDecompressedReader(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -110,6 +109,8 @@ func (h *Handler) ShortenText(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 3️⃣ Передаем данные в службу нашего приложения.
+	// Сервис возвращает структуру ExpandedURL
 	expandedURL, err := h.service.CreateShortURL(r.Context(), string(url)) // , userID
 
 	// ✔️ Проверка на уникальность. iter13 ♊ пишет, что это правильно!
@@ -117,6 +118,7 @@ func (h *Handler) ShortenText(w http.ResponseWriter, r *http.Request) {
 	// Здесь генерируем нужный ответ - 409
 	var notUniqueErr *err_repo.NotUniqueURLError
 	if errors.As(err, &notUniqueErr) {
+		// 4️⃣ Возвращаем клиенту response.
 		publicationResult(w, h, expandedURL, http.StatusConflict)
 		return
 	}
