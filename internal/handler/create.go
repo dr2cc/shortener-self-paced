@@ -19,7 +19,7 @@ func apiPublicationResult(w http.ResponseWriter, h *Handler, expandedURL link.Ex
 		Result: h.service.FormatShortURL(expandedURL.ID),
 	}
 
-	// marshalling - сортировка (сериаоизация) в json
+	// marshalling - сортировка (сериализация) в json
 	out, err := json.Marshal(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -98,33 +98,32 @@ func (h *Handler) ShortenText(w http.ResponseWriter, r *http.Request) {
 	}
 
 	url, err := io.ReadAll(reader)
+	// не получилось прочитать reader
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// пустой url
 	if string(url) == "" {
 		http.Error(w, "url required", http.StatusBadRequest)
 		return
 	}
 
-	// Если нет ошибок и значение url уникально, то err == nil
-	// Если url не уникален, то
-	// err == entity.ExpandedURL{OriginalURL: url, ID:urlID},  &shorteningError{Err:err, ShortURL: shortURL}
 	expandedURL, err := h.service.CreateShortURL(r.Context(), string(url)) // , userID
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 
-	// ✔️ Проверка на уникальность. iter13
-	// ♊ пишет, что это правильно!
-	//
+	// ✔️ Проверка на уникальность. iter13 ♊ пишет, что это правильно!
 	// Сама проверка в методе Save (при записи в хранилище).
 	// Здесь генерируем нужный ответ - 409
 	var notUniqueErr *err_repo.NotUniqueURLError
 	if errors.As(err, &notUniqueErr) {
 		publicationResult(w, h, expandedURL, http.StatusConflict)
+		return
+	}
+
+	// Эта ошибка на тот случай, если все наши if не сработали.
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
