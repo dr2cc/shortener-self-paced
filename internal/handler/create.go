@@ -34,7 +34,11 @@ func apiPublicationResult(w http.ResponseWriter, h *Handler, expandedURL link.Ex
 	}
 }
 
-// Локальная структура только для парсинга запроса
+// 🤷‍♂️
+// DTO. Локальная структура только для парсинга запроса
+// Чтобы хендлер не пачкал Entity своими JSON-тегами,
+// создал DTO прямо в пакете хендлера.
+// Это позволит API меняться, не трогая бизнес-логику.
 type shortenRequest struct {
 	URL string `json:"url"`
 }
