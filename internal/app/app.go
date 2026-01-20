@@ -25,7 +25,7 @@ const (
 )
 
 // Run создает объекты (через конструкторы!)
-func Run(cfg *config.Config) {
+func Run(cfg *config.Config) error {
 	// Создаем объект логгера
 	log := setupLogger(cfg.Env)
 	log.Info("init server", slog.String("address", cfg.ServerAddress))
@@ -122,6 +122,10 @@ func Run(cfg *config.Config) {
 	// 	log.Error("error occured on db connection close", sl.Err(err))
 	// 	os.Exit(1)
 	// }
+
+	// ❌ 20.01.26 добавил только это.
+	// Так не правильно. Исправить
+	return nil
 }
 
 func setupLogger(env string) *slog.Logger {

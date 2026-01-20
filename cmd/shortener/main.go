@@ -3,7 +3,9 @@ package main
 import (
 	"app/internal/app"
 	"app/internal/config"
+	"fmt"
 	"log"
+	"os"
 )
 
 func main() {
@@ -14,6 +16,12 @@ func main() {
 	}
 
 	// TODO: обработка ошибки при старте
+
+	//app.Run(cfg)
+
 	// Run
-	app.Run(cfg)
+	if err := app.Run(cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
 }
