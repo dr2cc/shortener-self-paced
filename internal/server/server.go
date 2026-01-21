@@ -39,6 +39,7 @@ func (s *Server) Run(port string, handler http.Handler) error {
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
+	// Проверяем: вдруг Run и Shutdown вызываются почти одновременно (или Run не успел создать httpServer).
 	if s.httpServer == nil {
 		return nil
 	}

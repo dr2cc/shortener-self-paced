@@ -15,10 +15,6 @@ func main() {
 		log.Fatalf("Config error: %s", err)
 	}
 
-	// TODO: обработка ошибки при старте
-
-	//app.Run(cfg)
-
 	// Run
 	if err := app.Run(cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
