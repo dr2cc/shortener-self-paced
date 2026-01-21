@@ -39,5 +39,8 @@ func (s *Server) Run(port string, handler http.Handler) error {
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
+	if s.httpServer == nil {
+		return nil
+	}
 	return s.httpServer.Shutdown(ctx)
 }

@@ -100,8 +100,9 @@ func Run(cfg *config.Config) error {
 	// quit: Это наш "стоп-кран".
 	// Это буферизованный канал, который будет ожидать системные сигналы.
 	quit := make(chan os.Signal, 1)
+	// Указываем сигналы, которые хотим слушать
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
-	<-quit
+	//<-quit
 
 	// ♊2. Используем select для ожидания либо сигнала, либо ошибки сервера
 	select {
@@ -119,11 +120,17 @@ func Run(cfg *config.Config) error {
 		// 	os.Exit(1)
 		// }
 
+		// ВАЖНО: Перестаем слушать сигналы сразу после получения первого.
+		// Это вернет стандартное поведение системы (второй Ctrl+C просто убьет процесс)
+		signal.Stop(quit)
+
 		// ♊3. Используем контекст с таймаутом для Shutdown
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
 		if err := srv.Shutdown(ctx); err != nil {
+			// // Если не удалось закрыть красиво, Close() закроет принудительно
+			// srv.Close()
 			return fmt.Errorf("failed to shutdown http server: %w", err)
 		}
 	}
