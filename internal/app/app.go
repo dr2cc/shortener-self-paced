@@ -8,14 +8,15 @@ import (
 	storage "app/internal/repository"
 	"app/internal/server"
 	"app/internal/service"
-	"app/pkg/logger/sl"
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 const (
@@ -29,13 +30,6 @@ func Run(cfg *config.Config) error {
 	// Создаем объект логгера
 	log := setupLogger(cfg.Env)
 	log.Info("init server", slog.String("address", cfg.ServerAddress))
-	log.Debug("logger debug mode enabled")
-
-	// ❗ В достижении цели “разделения ответственности между всеми слоями приложения” нам помогает “правило
-	// зависимости” (это о круговой диаграмме дяди Боба).
-	// Зависимости направлены только внутрь (внутренний круг ничего не должен знать про внешний
-	// и сущности внутреннего круга не могут обратиться к сущностям внешнего).
-	// ❗ И вот чтобы реализовать “Правило зависимости” мы используем технику dependency injection !
 
 	// Создаем сущности слоев (это three-layered architecture)
 	// в порядке обратном обращению к ним:
@@ -55,9 +49,6 @@ func Run(cfg *config.Config) error {
 	handlers := handler.NewHandler(services)
 	// ↑ HTTP request
 
-	// Работает в обратном раправлении!
-	// HTTP запрос -> ручка -> обращение к службе -> служба к базе данных.
-
 	// HTTP Server🧹🏦
 	srv := new(server.Server)
 
@@ -75,9 +66,12 @@ func Run(cfg *config.Config) error {
 	// Добавил проверку:
 	// if !errors.Is(err, http.ErrServerClosed) {}
 
-	// Отдельная горутина: сервер запускается в своей собственной горутине.
-	// Это необходимо, так как ListenAndServe() является блокирующим вызовом.
+	// ♊1. Добавляем канал для ошибок сервера
+	serverErrors := make(chan error, 1)
 	go func() {
+		log.Info("ShortenerApp is starting", slog.String("addr", cfg.ServerAddress))
+		// Отдельная горутина: сервер запускается в своей собственной горутине.
+		// Это необходимо, так как ListenAndServe() является блокирующим вызовом.
 		if err := srv.Run(cfg.ServerAddress, handlers.InitRoutes(log)); err != nil {
 			// В Go метод http.Server.ListenAndServe() ("спрятан" внутри srv.Run()) спроектирован так, что он всегда возвращает ошибку, если работа прекращена.
 			// Если это "авария" — вернется реальная ошибка.
@@ -87,17 +81,20 @@ func Run(cfg *config.Config) error {
 
 			// Проверяем, что ошибка НЕ является нашим сигналом о закрытии сервера
 			if !errors.Is(err, http.ErrServerClosed) {
-				// Логируем как Critical или Error, так как сервер не смог запуститься или упал
-				log.Error("server listener crashed", sl.Err(err))
-				// Важно: закрываем основной процесс, так как без сервера приложение бесполезно
-				os.Exit(1)
+				// ♊Вместо os.Exit отправляем ошибку в канал
+				serverErrors <- fmt.Errorf("server listener crashed: %w", err)
+
+				// // Логируем как Critical или Error, так как сервер не смог запуститься или упал
+				// log.Error("server listener crashed", sl.Err(err))
+				// // Важно: закрываем основной процесс, так как без сервера приложение бесполезно
+				// os.Exit(1)
 			}
 			// Если ошибка == ErrServerClosed, мы просто выходим из горутины.
 			// Это нормальное поведение при завершении.
 		}
 	}()
 
-	log.Info("ShortenerApp is started")
+	//log.Info("ShortenerApp is started")
 
 	// Graceful shutdown
 	// quit: Это наш "стоп-кран".
@@ -106,13 +103,29 @@ func Run(cfg *config.Config) error {
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
 
-	log.Info("ShortenerApp is shutting down")
+	// ♊2. Используем select для ожидания либо сигнала, либо ошибки сервера
+	select {
+	case err := <-serverErrors:
+		return err // Возвращаем ошибку, если сервер упал сам
 
-	// Корректное завершение (?)
-	// Используем корневой контекст Background
-	if err := srv.Shutdown(context.Background()); err != nil {
-		log.Error("failed to create http server", sl.Err(err))
-		os.Exit(1)
+	case sig := <-quit:
+		log.Info("ShortenerApp is shutting down", slog.String("signal", sig.String()))
+		//log.Info("ShortenerApp is shutting down")
+
+		// // Корректное завершение (?)
+		// // Используем корневой контекст Background
+		// if err := srv.Shutdown(context.Background()); err != nil {
+		// 	log.Error("failed to create http server", sl.Err(err))
+		// 	os.Exit(1)
+		// }
+
+		// ♊3. Используем контекст с таймаутом для Shutdown
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := srv.Shutdown(ctx); err != nil {
+			return fmt.Errorf("failed to shutdown http server: %w", err)
+		}
 	}
 
 	// // TODO: Close storage
@@ -123,8 +136,6 @@ func Run(cfg *config.Config) error {
 	// 	os.Exit(1)
 	// }
 
-	// ❌ 20.01.26 добавил только это.
-	// Так не правильно. Исправить
 	return nil
 }
 
