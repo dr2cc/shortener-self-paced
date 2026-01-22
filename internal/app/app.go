@@ -30,7 +30,7 @@ func Run(cfg *config.Config) error {
 	log.Info("init server", slog.String("address", cfg.ServerAddress))
 
 	// 3️⃣ Repository🧹🏦 (DAL)
-	repository := storage.NewRepository(log, cfg)
+	repository := storage.NewRepository(cfg, log)
 	// 2️⃣ ❌Use case (BL - Business Logic Layer, service)
 	generator := generator.NewStringGenerator()
 	services := service.NewService(repository, generator, cfg)

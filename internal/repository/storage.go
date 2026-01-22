@@ -23,21 +23,19 @@ type ShortURL interface {
 	SaveBatch(ctx context.Context, batch []link.ExpandedURL) error
 }
 
-// 🤷‍♂️ Лишнее
+// 🤷‍♂️ Лишнее?? Сравнить с Жашкевичем
 type Repository struct {
 	// Сервис сокращения URL, со своим функционалом
 	ShortURL
 }
 
-// 🤷‍♂️ log - последним
-func NewRepository(log *slog.Logger, cfg *config.Config) *Repository {
+func NewRepository(cfg *config.Config, log *slog.Logger) *Repository {
 	return &Repository{
-		ShortURL: choosingStorage(log, cfg),
+		ShortURL: choosingStorage(cfg, log),
 	}
 }
 
-// 🤷‍♂️ log - последним
-func choosingStorage(log *slog.Logger, cfg *config.Config) ShortURL {
+func choosingStorage(cfg *config.Config, log *slog.Logger) ShortURL {
 	// ❌ 13.01.2026 Убрал остальные хранилища (до полного изменения кода)
 	if cfg.DatabaseDSN != "" {
 		repo, err := pg.NewPostgresRepo(log, cfg)
