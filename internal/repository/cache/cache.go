@@ -22,11 +22,6 @@ func NewInMemoryRepository() *InMemoryRepository {
 	}
 }
 
-// Stub function
-func (repo *InMemoryRepository) Check(_ context.Context) error {
-	return nil
-}
-
 // SaveBatch сохраняет несколько URL-адресов.
 // Проверяет уникальность URL-адресов и сохраняет их.
 func (repo *InMemoryRepository) SaveBatch(_ context.Context, batch []link.ExpandedURL) error {

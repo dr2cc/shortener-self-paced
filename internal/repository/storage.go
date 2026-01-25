@@ -14,13 +14,10 @@ import (
 
 // (ex. hortURL, ex. Repository)
 type ShortURLRepository interface {
-	// Контракт интерфейса: интерфейс ShortURL "обещает", что метод может вернуть ошибку.
+	// Контракт интерфейса: интерфейс ShortURLRepository "обещает", что метод может вернуть ошибку.
 	// Сервис обязан уважать этот контракт!
 	Save(ctx context.Context, shortURL link.ExpandedURL) error
 	FindByID(ctx context.Context, id string) (link.ExpandedURL, error)
-	////🤷‍♂️ нет в задании- не нужен
-	// Close(_ context.Context) error
-	Check(ctx context.Context) error
 	SaveBatch(ctx context.Context, batch []link.ExpandedURL) error
 }
 
@@ -32,21 +29,16 @@ type DBHealthChecker interface {
 type Repository struct {
 	// Сервис сокращения URL, со своим функционалом
 	ShortURLRepository
-	// Сервис проверки работоспособности db, со своим функционалом
-	DBHealthChecker
 }
 
 // Called from app
 func NewRepository(cfg *config.Config, log *slog.Logger) *Repository {
 	return &Repository{
 		ShortURLRepository: choosingStorage(cfg, log),
-		// // ❌
-		// DBHealthChecker: ,
 	}
 }
 
 func choosingStorage(cfg *config.Config, log *slog.Logger) ShortURLRepository {
-	// ❌ 13.01.2026 Убрал остальные хранилища (до полного изменения кода)
 	if cfg.DatabaseDSN != "" {
 		repo, err := pg.NewPostgresRepo(cfg, log)
 		if err != nil {

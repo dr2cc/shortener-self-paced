@@ -74,33 +74,6 @@ func (repo *FileRepository) SaveBatch(ctx context.Context, batch []link.Expanded
 
 // Save проверяет уникальность URL-адреса и сохраняет его
 func (repo *FileRepository) Save(ctx context.Context, shortURL link.ExpandedURL) error {
-	// _, err := repo.FindByID(ctx, shortURL.ID)
-	// if err == nil {
-	// 	return err_repo.NewNotUniqueURLError(shortURL, nil)
-	// }
-
-	// data, err := json.Marshal(shortURL)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// repo.mutex.Lock()
-	// defer repo.mutex.Unlock()
-
-	// if _, errWrite := repo.writer.Write(data); errWrite != nil {
-	// 	return errWrite
-	// }
-
-	// if errWriteByte := repo.writer.WriteByte('\n'); errWriteByte != nil {
-	// 	return errWriteByte
-	// }
-
-	// if errFlush := repo.writer.Flush(); errFlush != nil {
-	// 	return errFlush
-	// }
-
-	//return nil
-
 	repo.mutex.Lock() // Одна блокировка на всё
 	defer repo.mutex.Unlock()
 
@@ -154,15 +127,4 @@ func (repo *FileRepository) FindByID(_ context.Context, id string) (link.Expande
 	}
 
 	return link.ExpandedURL{}, errors.New("can't find full url by id")
-}
-
-// Close closes file.
-func (repo *FileRepository) Close(_ context.Context) error {
-	return repo.file.Close()
-}
-
-// Check checks if file is ok.
-func (repo *FileRepository) Check(_ context.Context) error {
-	_, err := repo.file.Stat()
-	return err
 }

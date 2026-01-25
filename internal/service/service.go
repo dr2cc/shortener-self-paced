@@ -35,7 +35,7 @@ type ShortURL interface {
 type DBHealthChecker interface {
 	// Функцонал:
 	// Проверяем работоспособность db
-	HealthCheck(ctx context.Context) error
+	CheckHealth(ctx context.Context) error
 }
 
 type Service struct {
@@ -49,6 +49,6 @@ type Service struct {
 func NewService(repos *storage.Repository, gen *generator.StringGenerator, cfg *config.Config) *Service {
 	return &Service{
 		ShortURL:        NewShortService(repos.ShortURLRepository, gen, cfg),
-		DBHealthChecker: NewHelthService(repos.DBHealthChecker),
+		DBHealthChecker: NewHelthService(repos.ShortURLRepository),
 	}
 }
