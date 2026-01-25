@@ -12,18 +12,17 @@ import (
 	"fmt"
 	"hash/fnv"
 	"math/big"
-	"time"
 )
 
 type ShortService struct {
 	// "Общение" с репозиторием, сервиса сокращения URL
-	repo      storage.ShortURL
+	repo      storage.ShortURLRepository
 	generator *generator.StringGenerator
 	cfg       *config.Config // 🤷‍♂️ Нужно передавать только, что здесь нужно
 	// (cfg может очень большим). Или только базовый URL или (видимо  лучше) структура в которую смапали cfg (только нужное поле)
 }
 
-func NewShortService(repo storage.ShortURL, gen *generator.StringGenerator, cfg *config.Config) *ShortService {
+func NewShortService(repo storage.ShortURLRepository, gen *generator.StringGenerator, cfg *config.Config) *ShortService {
 	return &ShortService{
 		repo:      repo,
 		generator: gen,
@@ -39,15 +38,6 @@ func (sh ShortService) FindURL(ctx context.Context, id string) (link.ExpandedURL
 		return link.ExpandedURL{}, err //Shortener
 	}
 	return origURL, nil
-}
-
-// 🤷‍♂️ Другой сервис!
-// HealthCheck проверяет корректность работы выбранного хранилища
-func (sh ShortService) HealthCheck(ctx context.Context) error {
-	timeout := 5 * time.Second //nolint:gomnd
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-	return sh.repo.Check(ctx)
 }
 
 // FormatShortURL форматирование полученного ID (путем конкатенации с BaseURL из cfg)

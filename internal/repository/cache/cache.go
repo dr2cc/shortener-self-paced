@@ -22,6 +22,11 @@ func NewInMemoryRepository() *InMemoryRepository {
 	}
 }
 
+// Stub function
+func (repo *InMemoryRepository) Check(_ context.Context) error {
+	return nil
+}
+
 // SaveBatch сохраняет несколько URL-адресов.
 // Проверяет уникальность URL-адресов и сохраняет их.
 func (repo *InMemoryRepository) SaveBatch(_ context.Context, batch []link.ExpandedURL) error {
@@ -102,15 +107,4 @@ func (repo *InMemoryRepository) FindByID(_ context.Context, id string) (link.Exp
 	}
 
 	return url, nil
-}
-
-// Close clears map.
-func (repo *InMemoryRepository) Close(_ context.Context) error {
-	repo.links = make(map[string]link.ExpandedURL)
-	return nil
-}
-
-// Stub function
-func (repo *InMemoryRepository) Check(_ context.Context) error {
-	return nil
 }

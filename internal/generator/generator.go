@@ -14,7 +14,7 @@ type StringGenerator struct {
 }
 
 func NewStringGenerator() *StringGenerator {
-	// В 2026 году используем новый источник рандома для безопасности
+	// ♊В 2026 году используем новый источник рандома для безопасности
 	return &StringGenerator{
 		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}

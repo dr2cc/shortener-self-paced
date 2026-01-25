@@ -12,33 +12,43 @@ import (
 	"os"
 )
 
-// 🤷‍♂️ Переименовать в ShortURLRepository (ex. Repository)
-type ShortURL interface {
+// (ex. hortURL, ex. Repository)
+type ShortURLRepository interface {
 	// Контракт интерфейса: интерфейс ShortURL "обещает", что метод может вернуть ошибку.
 	// Сервис обязан уважать этот контракт!
 	Save(ctx context.Context, shortURL link.ExpandedURL) error
 	FindByID(ctx context.Context, id string) (link.ExpandedURL, error)
-	// Close(_ context.Context) error //🤷‍♂️ нет в задании- не нужен
+	////🤷‍♂️ нет в задании- не нужен
+	// Close(_ context.Context) error
 	Check(ctx context.Context) error
 	SaveBatch(ctx context.Context, batch []link.ExpandedURL) error
+}
+
+type DBHealthChecker interface {
+	Check(ctx context.Context) error
 }
 
 // 🤷‍♂️ Лишнее?? Сравнить с Жашкевичем
 type Repository struct {
 	// Сервис сокращения URL, со своим функционалом
-	ShortURL
+	ShortURLRepository
+	// Сервис проверки работоспособности db, со своим функционалом
+	DBHealthChecker
 }
 
+// Called from app
 func NewRepository(cfg *config.Config, log *slog.Logger) *Repository {
 	return &Repository{
-		ShortURL: choosingStorage(cfg, log),
+		ShortURLRepository: choosingStorage(cfg, log),
+		// // ❌
+		// DBHealthChecker: ,
 	}
 }
 
-func choosingStorage(cfg *config.Config, log *slog.Logger) ShortURL {
+func choosingStorage(cfg *config.Config, log *slog.Logger) ShortURLRepository {
 	// ❌ 13.01.2026 Убрал остальные хранилища (до полного изменения кода)
 	if cfg.DatabaseDSN != "" {
-		repo, err := pg.NewPostgresRepo(log, cfg)
+		repo, err := pg.NewPostgresRepo(cfg, log)
 		if err != nil {
 			log.Error("failed to connect pg storage")
 			os.Exit(1)

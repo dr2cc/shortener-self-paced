@@ -20,7 +20,7 @@ type PostgresRepo struct {
 	DB *sql.DB
 }
 
-func NewPostgresRepo(log *slog.Logger, cfg *config.Config) (*PostgresRepo, error) {
+func NewPostgresRepo(cfg *config.Config, log *slog.Logger) (*PostgresRepo, error) {
 	// // DSN from environment variables
 	// dsn := os.Getenv("DATABASE_DSN")
 
@@ -49,7 +49,7 @@ func NewPostgresRepo(log *slog.Logger, cfg *config.Config) (*PostgresRepo, error
 
 	repo := &PostgresRepo{DB: db}
 
-	err = checkTab(log, repo)
+	err = checkTab(repo, log)
 	if err != nil {
 		log.Error("failed to init storage")
 		os.Exit(1)
@@ -59,7 +59,7 @@ func NewPostgresRepo(log *slog.Logger, cfg *config.Config) (*PostgresRepo, error
 }
 
 // Создаем таблицу, если ее еще нет
-func checkTab(log *slog.Logger, repo *PostgresRepo) error {
+func checkTab(repo *PostgresRepo, log *slog.Logger) error {
 
 	stmt, err := repo.DB.Prepare(`
 	CREATE TABLE IF NOT EXISTS aliases(
@@ -82,6 +82,11 @@ func checkTab(log *slog.Logger, repo *PostgresRepo) error {
 	}
 
 	return nil
+}
+
+func (repo *PostgresRepo) Check(ctx context.Context) error {
+	// и вся проверка "здоровья"!
+	return repo.DB.PingContext(ctx)
 }
 
 // Save проверяет уникальность URL-адреса и сохраняет его
@@ -187,11 +192,6 @@ func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []link.ExpandedUR
 	return nil
 }
 
-func (repo *PostgresRepo) Check(ctx context.Context) error {
-	// и вся проверка "здоровья"!
-	return repo.DB.PingContext(ctx)
-}
-
 // FindByID находит URL по идентификатору.
 func (repo *PostgresRepo) FindByID(ctx context.Context, id string) (link.ExpandedURL, error) {
 	var ent link.ExpandedURL
@@ -201,9 +201,4 @@ func (repo *PostgresRepo) FindByID(ctx context.Context, id string) (link.Expande
 		id,
 	).Scan(&ent.OriginalURL, &ent.ID)
 	return ent, err
-}
-
-// Stub function
-func (repo *PostgresRepo) Close(_ context.Context) error {
-	return nil
 }
