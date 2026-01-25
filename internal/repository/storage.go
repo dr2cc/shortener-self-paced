@@ -21,17 +21,20 @@ type ShortURLRepository interface {
 	SaveBatch(ctx context.Context, batch []link.ExpandedURL) error
 }
 
+// Опциональный интерфес - его реализует только pg
 type DBHealthChecker interface {
 	Check(ctx context.Context) error
 }
 
-// 🤷‍♂️ Лишнее?? Сравнить с Жашкевичем
+// Содержит интерфейс ShortURLRepository
 type Repository struct {
 	// Сервис сокращения URL, со своим функционалом
 	ShortURLRepository
 }
 
 // Called from app
+// Чистая сигнатура: NewRepository возвращает единый объект,
+// который легко прокидывать в конструктор service.NewService
 func NewRepository(cfg *config.Config, log *slog.Logger) *Repository {
 	return &Repository{
 		ShortURLRepository: choosingStorage(cfg, log),

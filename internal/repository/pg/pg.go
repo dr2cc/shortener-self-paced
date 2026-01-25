@@ -84,6 +84,7 @@ func checkTab(repo *PostgresRepo, log *slog.Logger) error {
 	return nil
 }
 
+// Есть только в pg
 func (repo *PostgresRepo) Check(ctx context.Context) error {
 	// и вся проверка "здоровья"!
 	return repo.DB.PingContext(ctx)
