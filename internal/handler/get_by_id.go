@@ -7,10 +7,10 @@ import (
 )
 
 // Получаем первоначальный url, цель- перенапраление на него при получении сокращенного
-func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Redirect(w http.ResponseWriter, r *http.Request) {
 	uID := chi.URLParam(r, "id") //nolint:contextcheck
 
-	shortURL, err := h.service.FindURL(r.Context(), uID)
+	shortURL, err := c.service.FindURL(r.Context(), uID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -33,8 +33,8 @@ type Repository struct {
 }
 
 // Called from app
-// Чистая сигнатура: NewRepository возвращает единый объект,
-// который легко прокидывать в конструктор service.NewService
+// NewRepository возвращает единый объект,
+// который легко прокидывать в конструктор service.NewService ("чистая сигнатура")
 func NewRepository(cfg *config.Config, log *slog.Logger) *Repository {
 	return &Repository{
 		ShortURLRepository: choosingStorage(cfg, log),
