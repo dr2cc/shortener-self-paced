@@ -22,8 +22,8 @@ type ShortURLRepository interface {
 }
 
 // Опциональный интерфес - его реализует только pg
-type DBHealthChecker interface {
-	Check(ctx context.Context) error
+type Pinger interface {
+	CheckHealth(ctx context.Context) error
 }
 
 // Содержит интерфейс ShortURLRepository
@@ -32,16 +32,24 @@ type Repository struct {
 	ShortURLRepository
 }
 
-// Called from app
-// NewRepository возвращает единый объект,
-// который легко прокидывать в конструктор service.NewService ("чистая сигнатура")
-func NewRepository(cfg *config.Config, log *slog.Logger) *Repository {
+// // ❌ 27.01.2026 Проверить и удалить
+// // Called from app
+// // NewRepository возвращает единый объект,
+// // который легко прокидывать в конструктор service.NewService ("чистая сигнатура")
+// func NewRepository(cfg *config.Config, log *slog.Logger) *Repository {
+// 	return &Repository{
+// 		ShortURLRepository: ChoosingStorage(cfg, log),
+// 	}
+// }
+
+// ♊ Called from app
+func New(repo ShortURLRepository) *Repository {
 	return &Repository{
-		ShortURLRepository: choosingStorage(cfg, log),
+		ShortURLRepository: repo,
 	}
 }
 
-func choosingStorage(cfg *config.Config, log *slog.Logger) ShortURLRepository {
+func ChoosingStorage(cfg *config.Config, log *slog.Logger) ShortURLRepository {
 	if cfg.DatabaseDSN != "" {
 		repo, err := pg.NewPostgresRepo(cfg, log)
 		if err != nil {

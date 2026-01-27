@@ -5,8 +5,6 @@ import (
 	"context"
 )
 
-// ❌24.01.26 Переделать на прямое "общение" с pg!?
-// Так нет бреда в storage.go и заглушек в двух других (а по делу в одном, json_store надо убрать)
 type HelthService struct {
 	// "Общение" с репозиторием, проверки работоспособности db
 	repo storage.ShortURLRepository
@@ -22,8 +20,8 @@ func NewHelthService(repo storage.ShortURLRepository) *HelthService {
 func (s *HelthService) CheckHealth(ctx context.Context) error {
 	// Проверяем, реализует ли текущий репозиторий интерфейс DBHealthChecker
 	// Используем динамическую проверку типа (type assertion)
-	if pinger, ok := s.repo.(storage.DBHealthChecker); ok {
-		return pinger.Check(ctx)
+	if pinger, ok := s.repo.(storage.Pinger); ok {
+		return pinger.CheckHealth(ctx)
 	}
 
 	// Если это InMemory или File, которые не реализуют Ping,

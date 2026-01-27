@@ -29,11 +29,25 @@ func Run(cfg *config.Config) error {
 	log := setupLogger(cfg.Env)
 	log.Info("init server", slog.String("address", cfg.ServerAddress))
 
+	// 1. ♊Инфраструктура (коннекторы)
+	db := storage.ChoosingStorage(cfg, log)
 	// 3️⃣ Repository🧹🏦 (DAL)
-	repository := storage.NewRepository(cfg, log)
-	// 2️⃣ ❌Use case (BL - Business Logic Layer, service)
-	generator := generator.NewStringGenerator()
-	services := service.NewService(repository, generator, cfg)
+	repo := storage.New(db)
+	//repo := storage.NewRepository(cfg, log)
+	// 2️⃣ Use case (BL - Business Logic Layer, service)
+	gen := generator.NewStringGenerator()
+
+	// 2. ♊Инициализация логики (компоненты)
+	// linkSvc := shortener.New(repo, gen) // реализует ShortURL
+	linkSvc := service.NewShortService(repo, gen, cfg)
+
+	// 3. ♊Сборка АГРЕГАТОРА (единая точка входа)
+	// Мы просто передаем готовые компоненты
+	// appService := service.New(linkSvc, db)
+	services := service.New(linkSvc, db) // repo)
+	//services := service.NewService(repository, generator, cfg)
+
+	// 4. ♊Запуск (передаем только ОДНУ переменную в хендлеры)
 	// 1️⃣ Handler (PL - Presentation Layer, controller)
 	handlers := handler.NewHandler(services)
 	// ↑ HTTP request

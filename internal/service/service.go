@@ -18,6 +18,7 @@ import (
 // Предотвращение «утечек абстракции» https://habr.com/ru/articles/881918/
 
 // Сервис сокращения URL
+// Что мы делаем (интерфейс)
 type ShortURL interface {
 	// Функцонал:
 	// Форматирование ID в результирующую строку, нужна информация из cfg (единственному!)
@@ -33,23 +34,49 @@ type ShortURL interface {
 
 // Сервис проверки работоспособности db
 // Опциональный интерфес - его реализует только pg
-type DBHealthChecker interface {
+// Что мы делаем (интерфейс)
+type Pinger interface {
 	// Функцонал:
 	// Проверяем работоспособность db
 	CheckHealth(ctx context.Context) error
 }
 
+// noOpPinger — "заглушка-оптимист" для хранилищ без поддержки Ping (In-mem, File).
+type noOpPinger struct{}
+
+// По "подсказкам" все CheckHealth должны быть Ping.
+// Вообще не важно! Главное не запутаться.
+func (n *noOpPinger) CheckHealth(ctx context.Context) error {
+	return nil // Всегда "здоров"
+}
+
+// Service — **единая точка входа** (агрегатор или структурная обёртка) в бизнес-логику и средства контроля инфраструктуры (тут db)
+// Как мы делаем (структура и логика)
 type Service struct {
 	// Сервис сокращения URL, со своим функционалом
 	ShortURL
 	// Сервис проверки работоспособности db, со своим функционалом
-	DBHealthChecker
+	Pinger
 }
 
 // Called from app
 func NewService(repos *storage.Repository, gen *generator.StringGenerator, cfg *config.Config) *Service {
 	return &Service{
-		ShortURL:        NewShortService(repos.ShortURLRepository, gen, cfg),
-		DBHealthChecker: NewHelthService(repos.ShortURLRepository),
+		ShortURL: NewShortService(repos.ShortURLRepository, gen, cfg),
+		Pinger:   NewHelthService(repos.ShortURLRepository),
 	}
+}
+
+// ♊ Конструктор агрегатора
+func New(links ShortURL, repo any) *Service {
+	svc := &Service{ShortURL: links}
+
+	// Проверяем: если репозиторий поддерживает Ping, используем его
+	if p, ok := repo.(Pinger); ok {
+		svc.Pinger = p
+	} else {
+		// Если это файл или память — ставим "заглушку-оптимист"
+		svc.Pinger = &noOpPinger{}
+	}
+	return svc
 }
