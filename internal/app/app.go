@@ -31,24 +31,28 @@ func Run(cfg *config.Config) error {
 
 	// 1. ♊Инфраструктура (коннекторы)
 	db := storage.ChoosingStorage(cfg, log)
-	// 3️⃣ Repository🧹🏦 (DAL)
 	repo := storage.New(db)
-	//repo := storage.NewRepository(cfg, log)
-	// 2️⃣ Use case (BL - Business Logic Layer, service)
 	gen := generator.NewStringGenerator()
 
 	// 2. ♊Инициализация логики (компоненты)
-	// linkSvc := shortener.New(repo, gen) // реализует ShortURL
-	linkSvc := service.NewShortService(repo, gen, cfg)
+	linkSvc := service.NewShortService(repo, gen, cfg) // реализует ShortURL
 
 	// 3. ♊Сборка АГРЕГАТОРА (единая точка входа)
-	// Мы просто передаем готовые компоненты
-	// appService := service.New(linkSvc, db)
+	// Передаем готовые компоненты.
+	// Почему в агрегатор мы передаем именно db, а не repo?
+	// Этот момент — ключ к пониманию разницы между бизнес-логикой и инфраструктурой.
+	// Разные ответственности (Interface Segregation)
+	// - linkSvc (Сервис): Это «мозг». Он знает бизнес-правила (как сокращать, какие лимиты у пользователя).
+	// Ему нужен repo, чтобы складывать туда данные.
+	// - db (Коннектор): Это «кабель». У него есть метод Ping(), который проверяет физическое соединение с сервером БД.
+	// Если мы хотим проверить «здоровье» системы (хендлер /ping), нам не нужна бизнес-логика сокращения ссылок!
+	// В свою очередь:
+	// - repo (Репозиторий) — это абстракция над таблицами. Он умеет делать Save() и Get().
+	// Если мы заставим repo еще и проверять здоровье базы (Ping), мы нарушим принцип единственной ответственности.
 	services := service.New(linkSvc, db) // repo)
-	//services := service.NewService(repository, generator, cfg)
 
 	// 4. ♊Запуск (передаем только ОДНУ переменную в хендлеры)
-	// 1️⃣ Handler (PL - Presentation Layer, controller)
+	// PL - Presentation Layer, controller
 	handlers := handler.NewHandler(services)
 	// ↑ HTTP request
 
