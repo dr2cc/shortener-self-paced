@@ -18,7 +18,7 @@ func NewHelthService(repo storage.ShortURLRepository) *HelthService {
 
 // HealthCheck проверяет корректность работы выбранного хранилища
 func (s *HelthService) CheckHealth(ctx context.Context) error {
-	// Проверяем, реализует ли текущий репозиторий интерфейс DBHealthChecker
+	// Проверяем, реализует ли текущий репозиторий интерфейс Pinger
 	// Используем динамическую проверку типа (type assertion)
 	if pinger, ok := s.repo.(storage.Pinger); ok {
 		return pinger.CheckHealth(ctx)
