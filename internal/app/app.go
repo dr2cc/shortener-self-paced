@@ -29,13 +29,16 @@ func Run(cfg *config.Config) error {
 	log := setupLogger(cfg.Env)
 	log.Info("init server", slog.String("address", cfg.ServerAddress))
 
-	// 1. ♊Инфраструктура (коннекторы)
+	// 1. ♊Инфраструктурные компоненты (коннекторы).
 	db := storage.ChoosingStorage(cfg, log)
 	repo := storage.New(db)
 	gen := generator.NewStringGenerator()
 
-	// 2. ♊Инициализация логики (компоненты)
+	// 2. ♊Доменные сервисы (инициализация бизнес-логики (компоненты)).
+	// Сейчас такой сервис один.
 	linkSvc := service.NewShortService(repo, gen, cfg) // реализует ShortURL
+	// ♊ Будет второй, когда добавлю авторизацию
+	// authSvc := auth.New(repo, secretKey) // Новый равнозначный сервис
 
 	// 3. ♊Сборка АГРЕГАТОРА (единая точка входа)
 	// Передаем готовые компоненты.
@@ -49,11 +52,19 @@ func Run(cfg *config.Config) error {
 	// В свою очередь:
 	// - repo (Репозиторий) — это абстракция над таблицами. Он умеет делать Save() и Get().
 	// Если мы заставим repo еще и проверять здоровье базы (Ping), мы нарушим принцип единственной ответственности.
-	services := service.New(linkSvc, db) // repo)
+	appService := service.New(linkSvc, db)
+	// // Когда добавится authSvc агрегатор станет объединять (агрегировать!) ТРИ компонента
+	// appService := service.New(linkSvc, authSvc, db)
+
+	//****!!!!!!*********NB!*******************//
+	// **Профит** при решении с агрегатором:
+	// Меняем только одну функцию (добавляем authSvc в service.New).
+	// Все хендлеры уже имеют доступ к appService.
+	// Чтобы начать проверять авторизацию, пишем внутри хендлера что-то типа h.appService.CheckAuth(...) и все!
 
 	// 4. ♊Запуск (передаем только ОДНУ переменную в хендлеры)
 	// PL - Presentation Layer, controller
-	handlers := handler.NewHandler(services)
+	handlers := handler.NewHandler(appService)
 	// ↑ HTTP request
 
 	// HTTP Server🧹🏦
