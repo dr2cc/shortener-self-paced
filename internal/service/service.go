@@ -54,9 +54,10 @@ type Service struct {
 func New(links ShortURL, repo any) *Service {
 	svc := &Service{ShortURL: links}
 
-	// Проверяем: если репозиторий поддерживает Ping, используем его
-	if p, ok := repo.(Pinger); ok {
-		svc.Pinger = p
+	// Проверяем: если репозиторий поддерживает Ping (реализует интерфейс Pinger), используем его.
+	// Делаем динамическую проверку типа (type assertion)
+	if pinger, ok := repo.(Pinger); ok {
+		svc.Pinger = pinger
 	} else {
 		// Если это файл или память — ставим "заглушку-оптимист"
 		svc.Pinger = &noOpPinger{}

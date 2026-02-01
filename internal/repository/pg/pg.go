@@ -20,6 +20,12 @@ type PostgresRepo struct {
 	DB *sql.DB
 }
 
+// Есть только в pg
+func (repo *PostgresRepo) CheckHealth(ctx context.Context) error {
+	// и вся проверка "здоровья"!
+	return repo.DB.PingContext(ctx)
+}
+
 func NewPostgresRepo(cfg *config.Config, log *slog.Logger) (*PostgresRepo, error) {
 	// // DSN from environment variables
 	// dsn := os.Getenv("DATABASE_DSN")
@@ -82,12 +88,6 @@ func checkTab(repo *PostgresRepo, log *slog.Logger) error {
 	}
 
 	return nil
-}
-
-// Есть только в pg
-func (repo *PostgresRepo) CheckHealth(ctx context.Context) error {
-	// и вся проверка "здоровья"!
-	return repo.DB.PingContext(ctx)
 }
 
 // Save проверяет уникальность URL-адреса и сохраняет его
