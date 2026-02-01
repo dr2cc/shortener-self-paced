@@ -11,12 +11,12 @@ import (
 
 func ChoosingStorage(cfg *config.Config, log *slog.Logger) ShortURLRepository {
 	if cfg.DatabaseDSN != "" {
-		repo, err := pg.NewPostgresRepo(cfg, log)
+		db, err := pg.NewPostgresRepo(cfg, log)
 		if err != nil {
 			log.Error("failed to connect pg storage")
 			os.Exit(1)
 		}
-		return repo
+		return db
 	}
 	// Ментор считает, что это не отдельный вид хранилища,
 	// а условие, что если есть env или флаг,
@@ -28,12 +28,12 @@ func ChoosingStorage(cfg *config.Config, log *slog.Logger) ShortURLRepository {
 	// хранению сокращённых URL в файле при наличии соответствующей переменной окружения или флага командной строки;
 	// хранению сокращённых URL в памяти."
 	if cfg.FilePath != "" {
-		repo, err := jsonstore.NewFileRepository(cfg.FilePath)
+		db, err := jsonstore.NewFileRepository(cfg.FilePath)
 		if err != nil {
 			log.Error("file (jsonstore) storage error")
 			os.Exit(1)
 		}
-		return repo
+		return db
 	}
 
 	return cache.NewInMemoryRepository()
