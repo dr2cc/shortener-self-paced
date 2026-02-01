@@ -84,11 +84,11 @@ func checkTab(repo *PostgresRepo, log *slog.Logger) error {
 	return nil
 }
 
-// Есть только в pg
-func (repo *PostgresRepo) Check(ctx context.Context) error {
-	// и вся проверка "здоровья"!
-	return repo.DB.PingContext(ctx)
-}
+// // Есть только в pg
+// func (repo *PostgresRepo) Check(ctx context.Context) error {
+// 	// и вся проверка "здоровья"!
+// 	return repo.DB.PingContext(ctx)
+// }
 
 // Save проверяет уникальность URL-адреса и сохраняет его
 func (repo *PostgresRepo) Save(ctx context.Context, shortURL link.ExpandedURL) error {
