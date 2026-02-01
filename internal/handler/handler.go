@@ -40,7 +40,7 @@ func NewHandler(service *service.Service) *Controller {
 }
 
 // Called from app
-// InitRoutes creates a new router, adds middleware, and then adds routes
+// InitRoutes — **карта маршрутов** приложения, определяющая точки входа API.
 // Выбор буквы **h** для ресивера (получателя метода) явно указывает на роль Handler.
 // Даже если структура называется Controller, её поведение — это обработка HTTP-запросов.
 // Плюс: Сразу понятно, что это слой доставки (API).
@@ -53,7 +53,7 @@ func (h *Controller) InitRoutes(log *slog.Logger) chi.Router {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.Compress(flate.BestSpeed))
 
-	// Service DBHealthChecker
+	// Service Pinger
 	router.Get("/ping", h.Ping) // iter10
 	// Service ShortURL
 	router.Get("/{id}", h.Redirect)
