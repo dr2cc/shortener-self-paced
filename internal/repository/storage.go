@@ -15,11 +15,6 @@ type ShortURLRepository interface {
 	SaveBatch(ctx context.Context, batch []link.ExpandedURL) error
 }
 
-// // Опциональный интерфес - его реализует только pg
-// type Pinger interface {
-// 	CheckHealth(ctx context.Context) error
-// }
-
 // Содержит интерфейс ShortURLRepository
 type Repository struct {
 	// Сервис сокращения URL, со своим функционалом
