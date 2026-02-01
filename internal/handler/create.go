@@ -14,9 +14,9 @@ type ResponseAPI struct {
 	Result string `json:"result"`
 }
 
-func apiPublicationResult(w http.ResponseWriter, c *Controller, expandedURL link.ExpandedURL, status int) {
+func apiPublicationResult(w http.ResponseWriter, h *Controller, expandedURL link.ExpandedURL, status int) {
 	res := ResponseAPI{
-		Result: c.service.FormatShortURL(expandedURL.ID),
+		Result: h.service.FormatShortURL(expandedURL.ID),
 	}
 
 	// marshalling - сортировка (сериализация) в json
@@ -87,17 +87,17 @@ func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	apiPublicationResult(w, h, expandedURL, http.StatusCreated)
 }
 
-func publicationResult(w http.ResponseWriter, c *Controller, expandedURL link.ExpandedURL, status int) {
+func publicationResult(w http.ResponseWriter, h *Controller, expandedURL link.ExpandedURL, status int) {
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(status)
-	content := c.service.FormatShortURL(expandedURL.ID)
+	content := h.service.FormatShortURL(expandedURL.ID)
 	if _, err := w.Write([]byte(content)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 // ❌ 18.01.26 не пойму как мой ShortenText выполняет структурирование (маппинг) в ExpandedURL ??
-func (c *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
+func (h *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
 	// 1️⃣ Принимаем данные от клиента
 	reader, err := getDecompressedReader(r)
 	if err != nil {
@@ -120,7 +120,7 @@ func (c *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
 
 	// 3️⃣ Передаем данные в службу нашего приложения.
 	// Сервис возвращает структуру ExpandedURL
-	expandedURL, err := c.service.CreateShortURL(r.Context(), string(url)) // , userID
+	expandedURL, err := h.service.CreateShortURL(r.Context(), string(url)) // , userID
 
 	// ✔️ Проверка на уникальность. iter13 ♊ пишет, что это правильно!
 	// Сама проверка в методе Save (при записи в хранилище).
@@ -128,7 +128,7 @@ func (c *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
 	var notUniqueErr *err_repo.NotUniqueURLError
 	if errors.As(err, &notUniqueErr) {
 		// 4️⃣ Возвращаем клиенту response.
-		publicationResult(w, c, expandedURL, http.StatusConflict)
+		publicationResult(w, h, expandedURL, http.StatusConflict)
 		return
 	}
 
@@ -138,5 +138,5 @@ func (c *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	publicationResult(w, c, expandedURL, http.StatusCreated)
+	publicationResult(w, h, expandedURL, http.StatusCreated)
 }
