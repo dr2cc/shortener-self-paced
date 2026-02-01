@@ -40,15 +40,6 @@ type Pinger interface {
 	CheckHealth(ctx context.Context) error
 }
 
-// noOpPinger — "заглушка-оптимист" для хранилищ без поддержки Ping (In-mem, File).
-type noOpPinger struct{}
-
-// По "подсказкам" все CheckHealth должны быть Ping.
-// Вообще не важно! Главное не запутаться.
-func (n *noOpPinger) CheckHealth(ctx context.Context) error {
-	return nil // Всегда "здоров"
-}
-
 // Service — **единая точка входа** (агрегатор или структурная обёртка)
 // в бизнес-логику и средства контроля инфраструктуры (тут db).
 // Как мы делаем (структура и логика)
@@ -58,14 +49,6 @@ type Service struct {
 	// Сервис проверки работоспособности db, со своим функционалом
 	Pinger
 }
-
-// // Called from app
-// func NewService(repos *storage.Repository, gen *generator.StringGenerator, cfg *config.Config) *Service {
-// 	return &Service{
-// 		ShortURL: NewShortService(repos.ShortURLRepository, gen, cfg),
-// 		Pinger:   NewHelthService(repos.ShortURLRepository),
-// 	}
-// }
 
 // ♊ Конструктор агрегатора
 func New(links ShortURL, repo any) *Service {
