@@ -22,7 +22,9 @@ type PostgresRepo struct {
 
 // Есть только в pg
 func (repo *PostgresRepo) CheckHealth(ctx context.Context) error {
-	// и вся проверка "здоровья"!
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second) // Даем базе 1 секунду на ответ
+	defer cancel()
+
 	return repo.DB.PingContext(ctx)
 }
 
