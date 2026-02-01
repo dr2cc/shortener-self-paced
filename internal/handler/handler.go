@@ -41,7 +41,10 @@ func NewHandler(service *service.Service) *Controller {
 
 // Called from app
 // InitRoutes creates a new router, adds middleware, and then adds routes
-func (c *Controller) InitRoutes(log *slog.Logger) chi.Router {
+// Выбор буквы **h** для ресивера (получателя метода) явно указывает на роль Handler.
+// Даже если структура называется Controller, её поведение — это обработка HTTP-запросов.
+// Плюс: Сразу понятно, что это слой доставки (API).
+func (h *Controller) InitRoutes(log *slog.Logger) chi.Router {
 	router := chi.NewRouter()
 
 	router.Use(middleware.RequestID)
@@ -51,12 +54,12 @@ func (c *Controller) InitRoutes(log *slog.Logger) chi.Router {
 	router.Use(middleware.Compress(flate.BestSpeed))
 
 	// Service DBHealthChecker
-	router.Get("/ping", c.Ping) // iter10
+	router.Get("/ping", h.Ping) // iter10
 	// Service ShortURL
-	router.Get("/{id}", c.Redirect)
-	router.Post("/", c.ShortenText)
-	router.Post("/api/shorten", c.ShortenAPI)            // iter7
-	router.Post("/api/shorten/batch", c.BatchShortenAPI) // iter12
+	router.Get("/{id}", h.Redirect)
+	router.Post("/", h.ShortenText)
+	router.Post("/api/shorten", h.ShortenAPI)            // iter7
+	router.Post("/api/shorten/batch", h.BatchShortenAPI) // iter12
 
 	return router
 }

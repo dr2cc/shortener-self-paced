@@ -13,7 +13,7 @@ import (
 // 3️⃣ Передаем данные в службу нашего приложения.
 // 4️⃣ Возвращаем клиенту response.
 
-func (c *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
+func (h *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 	// "correlation_id" и "original_url" - так в запросе, по заданию  на iter12,
 	// называются ключи в строках JSON запроса
 	type request struct {
@@ -48,7 +48,7 @@ func (c *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Вход в сократитель
-	shortURLBatches, err := c.service.ShortenBatch(r.Context(), batch)
+	shortURLBatches, err := h.service.ShortenBatch(r.Context(), batch)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -59,7 +59,7 @@ func (c *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 	for i, shortURLBatch := range shortURLBatches {
 		res[i] = response.CreateBatchResponse{
 			CorrelationID: shortURLBatch.CorrelationID,
-			ShortURL:      c.service.FormatShortURL(shortURLBatch.ID),
+			ShortURL:      h.service.FormatShortURL(shortURLBatch.ID),
 		}
 	}
 

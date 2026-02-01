@@ -44,7 +44,7 @@ type shortenRequest struct {
 }
 
 // Назову json post ручку ShortenAPI - обычно при помощи json создают интерфейс
-func (c *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
+func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	var v shortenRequest
 
 	reader, err := getDecompressedReader(r)
@@ -70,12 +70,12 @@ func (c *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	// Если нет ошибок и значение url уникально, то err == nil
 	// Если url не уникален, то
 	// err == entity.ExpandedURL{OriginalURL: url, ID:urlID},  &shorteningError{Err:err, ShortURL: shortURL}
-	expandedURL, err := c.service.CreateShortURL(r.Context(), v.URL)
+	expandedURL, err := h.service.CreateShortURL(r.Context(), v.URL)
 
 	// Iter13 генерация нужного ответа - 409
 	var notUniqueErr *err_repo.NotUniqueURLError
 	if errors.As(err, &notUniqueErr) {
-		apiPublicationResult(w, c, expandedURL, http.StatusConflict)
+		apiPublicationResult(w, h, expandedURL, http.StatusConflict)
 		return
 	}
 
@@ -84,7 +84,7 @@ func (c *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiPublicationResult(w, c, expandedURL, http.StatusCreated)
+	apiPublicationResult(w, h, expandedURL, http.StatusCreated)
 }
 
 func publicationResult(w http.ResponseWriter, c *Controller, expandedURL link.ExpandedURL, status int) {
