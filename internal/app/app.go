@@ -32,6 +32,7 @@ func Run(cfg *config.Config) error {
 	// 1. ♊Инфраструктурные компоненты (коннекторы).
 	db := storage.ChoosingStorage(cfg, log)
 	repo := storage.New(db)
+	// Решаем один раз, какой именно генератор будет работать во всем приложении.
 	gen := generator.NewStringGenerator()
 
 	// 2. ♊Доменные компоненты (сервисы), инициализация бизнес-логики.
