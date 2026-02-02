@@ -38,6 +38,7 @@ func (h *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 	for i, shortURLInput := range input {
 		if shortURLInput.OriginalURL == "" {
 			http.Error(w, "url required", http.StatusBadRequest)
+			// Если хоть один URL пустой, немедленно прекращаем выполнение!
 			return
 		}
 		// Здесь в batch записываются все данные полученные из запроса клиента
@@ -47,8 +48,10 @@ func (h *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Вход в сократитель
+	// Передача слою сервисов.
 	shortURLBatches, err := h.service.ShortenBatch(r.Context(), batch)
+	// 02.02.26
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
