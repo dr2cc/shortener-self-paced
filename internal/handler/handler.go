@@ -56,8 +56,8 @@ func (h *Controller) InitRoutes(log *slog.Logger) chi.Router {
 	// Service Pinger
 	router.Get("/ping", h.Ping) // iter10
 	// Service ShortURL
-	router.Get("/{id}", h.Redirect)
 	router.Post("/", h.ShortenText)
+	router.Get("/{id}", h.Redirect)
 	router.Post("/api/shorten", h.ShortenAPI)            // iter7
 	router.Post("/api/shorten/batch", h.BatchShortenAPI) // iter12
 

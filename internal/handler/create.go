@@ -96,7 +96,6 @@ func publicationResult(w http.ResponseWriter, h *Controller, expandedURL link.Ex
 	}
 }
 
-// ❌ 18.01.26 не пойму как мой ShortenText выполняет структурирование (маппинг) в ExpandedURL ??
 func (h *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
 	// 1️⃣ Принимаем данные от клиента
 	reader, err := getDecompressedReader(r)

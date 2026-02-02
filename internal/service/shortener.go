@@ -106,7 +106,7 @@ func (sh *ShortService) CreateShortURL(ctx context.Context, originalURL string) 
 	const idLength = 8 // Оптимально для 200+ млрд комбинаций
 
 	for i := 0; i < maxRetries; i++ {
-		// 1. Генерируем случайный ID
+		// 1. Генерируем случайный ID через функционал generator сервиса ShortService
 		newID := sh.generator.NewRandomString(idLength)
 
 		// Создаем сущность через фабрику
