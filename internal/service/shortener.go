@@ -105,17 +105,24 @@ func (sh *ShortService) CreateShortURL(ctx context.Context, originalURL string) 
 	const maxRetries = 3
 	const idLength = 8 // Оптимально для 200+ млрд комбинаций
 
+	// Поскольку рандом может выдать уже существующий в базе ID, в сервисном слое (там, где ты вызываешь генератор) нужно добавить цикл.
+	// Технически это называется "Optimistic Retry Loop":
 	for i := 0; i < maxRetries; i++ {
-		// 1. Генерируем случайный ID через функционал generator сервиса ShortService
-		newID := sh.generator.NewRandomString(idLength)
+		// 1. Получаем строку ID через метод NewRandomString.
+		// Метод NewRandomString — это «черный ящик».
+		// Сервису ShortURL всё равно, используется ли внутри math/rand, crypto/rand или просто вырезаются куски из UUID.
+		// Он просит: «дай мне строку длиной idLength». Это и есть Abstraction Layer.
+		ID := sh.generator.NewRandomString(idLength)
 
 		// Создаем сущность через фабрику
-		newLink := link.New(originalURL, newID)
+		newLink := link.New(originalURL, ID)
 
+		// Проверка на ошибку "Duplicate Key".
 		err := sh.repo.Save(ctx, newLink)
 		if err == nil {
 			return newLink, nil // Успех
 		}
+		// Если база вернула "Duplicate Key" — продолжаем цикл.
 
 		// Если это конфликт URL — сразу выходим и отдаем 409
 		var notUniqueErr *err_repo.NotUniqueURLError

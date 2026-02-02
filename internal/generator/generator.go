@@ -9,7 +9,12 @@ import (
 // Он не содержит спецсимволов, которые могут «сломать» URL
 const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-// Stateful Factory (фабрика с состоянием). Она хранит состояние генератора внутри себя.
+// Stateless Provider ("безликий" поставщик услуг).
+// Несмотря на то, что StringGenerator пуст (Stateless), наличие метода NewRandomString
+// позволяет в любой момент изменить логику генерации, не переписывая основной код сервиса.
+// Архитектурно это всё еще Abstraction Layer!
+// Сервис сокращения ссылок по-прежнему не знает,
+// как именно создается строка, он просто вызывает метод NewRandomString
 type StringGenerator struct{}
 
 func NewStringGenerator() *StringGenerator {
