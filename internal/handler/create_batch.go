@@ -38,6 +38,12 @@ func (h *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 	// (Особенно) заполнение его (!) в цикле ниже!
 	batch := make([]link.ExpandedURL, len(input))
 
+	// ♊Как это работает вместе:
+	// Handler (Эндпоинт) принимает запрос и передает данные в сервис.
+	// Service (shortener) решает, что нужно создать ссылку❗
+	// Link (Домен) предоставляет фабрику link.New() для сборки объекта.
+	// ❌ А здесь не так!
+
 	for i, shortURLInput := range input {
 		if shortURLInput.OriginalURL == "" {
 			http.Error(w, "url required", http.StatusBadRequest)
