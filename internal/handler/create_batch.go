@@ -33,6 +33,9 @@ func (h *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 02.02.2026 Вот эту логику следует передать в service:
+	// Создание batch
+	// (Особенно) заполнение его (!) в цикле ниже!
 	batch := make([]link.ExpandedURL, len(input))
 
 	for i, shortURLInput := range input {
@@ -41,6 +44,7 @@ func (h *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 			// Если хоть один URL пустой, немедленно прекращаем выполнение!
 			return
 		}
+		// ❌ слой handlers готовит нашу модель данных link.ExpandedURL !
 		// Здесь в batch записываются все данные полученные из запроса клиента
 		batch[i] = link.ExpandedURL{
 			OriginalURL:   shortURLInput.OriginalURL,
@@ -50,7 +54,8 @@ func (h *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 
 	// Передача слою сервисов.
 	shortURLBatches, err := h.service.ShortenBatch(r.Context(), batch)
-	// 02.02.26
+	// 03.02.26 В service передаем input , а уже там проводим всю работу с link.ExpandedURL
+	// shortURLBatches, err := h.service.ShortenBatch(r.Context(), input)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

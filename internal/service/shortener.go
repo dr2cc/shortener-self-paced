@@ -51,7 +51,7 @@ func (sh ShortService) FormatShortURL(urlID string) string {
 // 01.01.2026 - должен использовать mapping
 // и получать на вход необработанную структуру из запроса.
 //
-// ShortenBatch мапит массив входящих данных в []entity.ExpandedURL
+// ShortenBatch мапит массив входящих данных в []link.ExpandedURL
 // Все записи пакета должны содержать OriginalURL(?)
 func (sh ShortService) ShortenBatch(ctx context.Context, batch []link.ExpandedURL) ([]link.ExpandedURL, error) {
 	for i, URL := range batch {
