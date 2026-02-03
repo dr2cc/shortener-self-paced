@@ -3,7 +3,7 @@ package storage
 import (
 	"app/internal/config"
 	"app/internal/repository/cache"
-	jsonstore "app/internal/repository/jsonrstore"
+	jsonstore "app/internal/repository/jsonstore"
 	"app/internal/repository/pg"
 	"log/slog"
 	"os"

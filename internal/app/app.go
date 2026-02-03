@@ -3,8 +3,8 @@ package app
 
 import (
 	"app/internal/config"
-	"app/internal/generator"
 	"app/internal/handler"
+	"app/internal/lib/generator"
 	storage "app/internal/repository"
 	"app/internal/server"
 	"app/internal/service"

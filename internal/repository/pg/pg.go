@@ -3,8 +3,8 @@ package pg
 import (
 	"app/internal/config"
 	"app/internal/domain/link"
-	err_repo "app/internal/errors/repository"
-	"app/pkg/logger/sl"
+	"app/internal/lib/logger/sl"
+	err_repo "app/internal/lib/repository"
 	"context"
 	"database/sql"
 	"errors"

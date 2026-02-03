@@ -2,7 +2,7 @@ package cache
 
 import (
 	"app/internal/domain/link"
-	err_repo "app/internal/errors/repository"
+	err_repo "app/internal/lib/repository"
 	"context"
 	"errors"
 	"sync"

@@ -3,16 +3,17 @@ package service
 import (
 	"app/internal/config"
 	"app/internal/domain/link"
-	err_repo "app/internal/errors/repository"
-	"app/internal/generator"
+	"app/internal/lib/generator"
+	err_repo "app/internal/lib/repository"
 	storage "app/internal/repository"
 	"context"
-	"encoding/binary"
 	"errors"
 	"fmt"
-	"hash/fnv"
-	"math/big"
 )
+
+// TODO: move to config if needed
+const maxRetries = 3
+const idLength = 8 // Оптимально для 200+ млрд комбинаций
 
 type ShortService struct {
 	// "Общение" с репозиторием, сервиса сокращения URL
@@ -30,89 +31,47 @@ func NewShortService(repo storage.ShortURLRepository, gen *generator.StringGener
 	}
 }
 
-// Функция FindURL находит в хранилище полный URL-адрес по указанному идентификатору.
-// Возвращает заполненную структуру entity.ExpandedURL
-func (sh ShortService) FindURL(ctx context.Context, id string) (link.ExpandedURL, error) {
-	origURL, err := sh.repo.FindByID(ctx, id)
-	if err != nil {
-		return link.ExpandedURL{}, err //Shortener
-	}
-	return origURL, nil
-}
-
-// FormatShortURL форматирование полученного ID (путем конкатенации с BaseURL из cfg)
-// в результирующую строку, возвращаемую запросами POST
-func (sh ShortService) FormatShortURL(urlID string) string {
-	return fmt.Sprintf("%s/%s", sh.cfg.BaseURL, urlID)
-}
-
-// ❌ ShortenBatch - уже на входе ошибка слоев! Мы получаем нашу готовую модель данных.
-// ♊А должно быть так:
-// Handler (Эндпоинт) принимает запрос и передает данные в сервис.
+// ♊Принцип:
+// Handler (к примеру BatchShortenAPI) принимает запрос и передает данные в сервис.
 // Service (shortener) решает, что нужно создать ссылку❗
 // Link (Домен) предоставляет фабрику link.New() для сборки объекта.
-// ❌ Получается ее готовит слой handlers!!!
-// 03.02.2026 - должен использовать mapping
-// и получать на вход необработанную структуру из запроса.
-//
-// ShortenBatch мапит массив входящих данных в []link.ExpandedURL
-// Все записи пакета должны содержать OriginalURL(?)
-func (sh ShortService) ShortenBatch(ctx context.Context, batch []link.ExpandedURL) ([]link.ExpandedURL, error) {
-	for i, URL := range batch {
-		urlID, err := GenerateIDfromString(URL.OriginalURL)
-		if err != nil {
-			return nil, err
-		}
-		batch[i].ID = urlID
-		//batch[i].CreatedByID = userID
-	}
 
-	if err := sh.repo.SaveBatch(ctx, batch); err != nil {
-		return nil, err
-	}
-
-	return batch, nil
+// Чтобы сервис стал по-настоящему независимым («чистым»),
+// он должен принимать данные в своих собственных терминах или в примитивах.
+// Структура-посредник (собственный примитив).
+type BatchInput struct {
+	OriginalURL   string
+	CorrelationID string
 }
 
-// // Shorten сокращает полный URL и возвращает заполненную структуру ExpandedURL
-// func (sh ShortService) Shorten(ctx context.Context, url string) (entity.ExpandedURL, error) {
-// 	shortURL, err := Mapping(url)
-// 	if err != nil {
-// 		return entity.ExpandedURL{}, err
-// 	}
+// ShortenBatch мапит массив входящих данных в []link.ExpandedURL
+func (sh ShortService) ShortenBatch(ctx context.Context, batch []BatchInput) ([]link.ExpandedURL, error) {
+	newLinkBatch := make([]link.ExpandedURL, len(batch))
 
-// 	// Пробуем записать в хранилище, с проверкой уникальности (iter13)
-// 	err = sh.repo.Save(ctx, shortURL)
+	// Обход полученного массива
+	for i, URL := range batch {
+		// Метод NewRandomString — это «черный ящик».
+		// Сервис не знает как он работает и ему это не нужно.
+		ID := sh.generator.NewRandomString(idLength)
 
-// 	// "Реакция" на уникальность / не уникальность
-// 	var notUniqueErr *err_repo.NotUniqueURLError
-// 	// 🔦 func errors.As(err error, target any) bool
-// 	// As находит первую ошибку в дереве err, соответствующую target, и, если она найдена,
-// 	// устанавливает target равным этому значению ошибки и возвращает true.
-// 	// В противном случае возвращает false.
-// 	// Дерево состоит из самого err, за которым следуют ошибки,
-// 	// полученные путём многократного вызова его метода Unwrap() error или Unwrap() []error.
-// 	// Когда err оборачивает несколько ошибок, As проверяет err, а затем выполняет обход в глубину его дочерних элементов.
-// 	if errors.As(err, &notUniqueErr) {
-// 		// Если запись не уникальна, возвращаем:
-// 		return shortURL, err_service.NewShorteningError(shortURL, err)
-// 	}
+		// Заполняем элемент массива сущностью полученной при помощи фабрики.
+		newLinkBatch[i] = link.New(URL.OriginalURL, ID, link.WithCorrelationID(URL.CorrelationID))
+	}
 
-// 	if err != nil {
-// 		return entity.ExpandedURL{}, err
-// 	}
+	// Попытка записи в хранилище.
+	// SaveBatch реализован как транзакция и проверяет уникальность URL-адресов.
+	if err := sh.repo.SaveBatch(ctx, newLinkBatch); err != nil {
+		return nil, fmt.Errorf("batch save failed: %w", err)
+	}
 
-// 	return shortURL, nil
-// }
+	return newLinkBatch, nil
+}
 
-func (sh *ShortService) CreateShortURL(ctx context.Context, originalURL string) (link.ExpandedURL, error) {
-	const maxRetries = 3
-	const idLength = 8 // Оптимально для 200+ млрд комбинаций
-
-	// Поскольку рандом может выдать уже существующий в базе ID, в сервисном слое (там, где ты вызываешь генератор) нужно добавить цикл.
+func (sh *ShortService) ShortenURL(ctx context.Context, originalURL string) (link.ExpandedURL, error) {
+	// Рандом может выдать уже существующий в базе ID, поэтому в месте вызова генератора (сервисном слое) нужно добавить цикл.
 	// Технически это называется "Optimistic Retry Loop":
 	for i := 0; i < maxRetries; i++ {
-		// 1. Получаем строку ID через метод NewRandomString.
+		// Получаем строку ID через метод NewRandomString.
 		// Метод NewRandomString — это «черный ящик».
 		// Сервису ShortURL всё равно, используется ли внутри math/rand, crypto/rand или просто вырезаются куски из UUID.
 		// Он просит: «дай мне строку длиной idLength». Это и есть Abstraction Layer.
@@ -128,7 +87,7 @@ func (sh *ShortService) CreateShortURL(ctx context.Context, originalURL string) 
 		}
 		// Если база вернула "Duplicate Key" — продолжаем цикл.
 
-		// Если это конфликт URL — сразу выходим и отдаем 409
+		// iter13 Если это конфликт URL — сразу выходим и отдаем 409
 		var notUniqueErr *err_repo.NotUniqueURLError
 		if errors.As(err, &notUniqueErr) {
 			return notUniqueErr.ShortURL, err
@@ -149,37 +108,18 @@ func (sh *ShortService) CreateShortURL(ctx context.Context, originalURL string) 
 	return link.ExpandedURL{}, err_repo.ErrGenerationFailed
 }
 
-// GenerateIDfromString создает ID (shortURL) из url.
-func GenerateIDfromString(str string) (string, error) {
-	if str == "" {
-		return "", errors.New("empty string to generate id from")
-	}
-
-	hash, err := hashURL(str)
+// Функция FindURL находит в хранилище полный URL-адрес по указанному идентификатору.
+// Возвращает заполненную структуру entity.ExpandedURL
+func (sh ShortService) FindURL(ctx context.Context, id string) (link.ExpandedURL, error) {
+	origURL, err := sh.repo.FindByID(ctx, id)
 	if err != nil {
-		return "", err
+		return link.ExpandedURL{}, err //Shortener
 	}
-
-	result := stringFromHash(hash)
-	return result, nil
+	return origURL, nil
 }
 
-// hashURL принимает строку и возвращает 32-битный хеш этой строки
-func hashURL(url string) (uint32, error) {
-	hash := fnv.New32a()
-	if _, err := hash.Write([]byte(url)); err != nil {
-		return 0, err
-	}
-	return hash.Sum32(), nil
-}
-
-// (ex. toBase62) преобразует uint32 в строку
-func stringFromHash(id uint32) string {
-	var i big.Int
-	size := 8
-	bytes := make([]byte, size)
-	binary.LittleEndian.PutUint32(bytes, id)
-	i.SetBytes(bytes)
-	base := 62
-	return i.Text(base)
+// FormatShortURL форматирование полученного ID (путем конкатенации с BaseURL из cfg)
+// в результирующую строку, возвращаемую запросами POST
+func (sh ShortService) FormatShortURL(urlID string) string {
+	return fmt.Sprintf("%s/%s", sh.cfg.BaseURL, urlID)
 }

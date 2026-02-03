@@ -23,9 +23,9 @@ type ShortURL interface {
 	// Форматирование ID в результирующую строку, нужна информация из cfg (единственному!)
 	FormatShortURL(urlID string) string
 	// Мапим URL из запроса в структуру link.ExpandedURL
-	CreateShortURL(ctx context.Context, url string) (link.ExpandedURL, error)
+	ShortenURL(ctx context.Context, url string) (link.ExpandedURL, error)
 	// Мапим массив входящих данных в []link.ExpandedURL
-	ShortenBatch(ctx context.Context, batch []link.ExpandedURL) ([]link.ExpandedURL, error)
+	ShortenBatch(ctx context.Context, batch []BatchInput) ([]link.ExpandedURL, error)
 	// Находит в хранилище полный URL-адрес по указанному идентификатору.
 	// Возвращает заполненную структуру link.ExpandedURL
 	FindURL(ctx context.Context, id string) (link.ExpandedURL, error)
