@@ -6,7 +6,6 @@ import (
 	"app/internal/lib/httpio"
 	err_repo "app/internal/lib/repository"
 	"app/internal/service"
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -44,48 +43,54 @@ func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 		URL: input.URL,
 	}
 
+	// TODO: явно корявая реализация ifs ❌ исправить!
 	// 3️⃣ Отдаем в сервис "чистые" (без json из dto) данные и получаем данные для ответа
-	link, err := h.service.ShortenURL(r.Context(), serviceInput.URL)
-	// Если нет ошибок и значение url уникально, то
-	// err == nil
-	// Если url не уникален, то
-	// err == &shorteningError{Err:err, ShortURL: shortURL}
 	var notUniqueErr *err_repo.NotUniqueURLError
-	if errors.As(err, &notUniqueErr) {
-		// url не уникальный. iter13
-		httpio.Respond(w, r, 409, link)
-		//responseShortenAPI(w, h, link, http.StatusConflict)
-		return
+
+	link, err := h.service.ShortenURL(r.Context(), serviceInput.URL)
+	if err == nil || errors.As(err, &notUniqueErr) {
+		// Заполняем структуру для ответа
+		output := dto.ResponseShorten{
+			Result: h.service.FormatShortURL(link.ID),
+		}
+		if errors.As(err, &notUniqueErr) {
+			// url не уникальный. iter13
+			httpio.Respond(w, r, 409, output)
+			//responseShortenAPI(w, h, link, http.StatusConflict)
+			return
+		}
+		httpio.Respond(w, r, 201, output) // успех
 	}
+
 	// В случае если ошибка не связана с уникальностью
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// успех
-	responseShortenAPI(w, h, link, http.StatusCreated)
+	// // успех
+	// responseShortenAPI(w, h, link, http.StatusCreated)
 }
 
-func responseShortenAPI(w http.ResponseWriter, h *Controller, expandedURL link.ExpandedURL, status int) {
-	// Заполняем структуру для ответа
-	output := dto.ResponseShorten{
-		Result: h.service.FormatShortURL(expandedURL.ID),
-	}
+// func responseShortenAPI(w http.ResponseWriter, h *Controller, expandedURL link.ExpandedURL, status int) {
+// 	// Заполняем структуру для ответа
+// 	output := dto.ResponseShorten{
+// 		Result: h.service.FormatShortURL(expandedURL.ID),
+// 	}
 
-	// 4️⃣ Сериалиазуем (marshalling).
-	resp, err := json.Marshal(output)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+// 	// 4️⃣ Сериалиазуем (marshalling).
+// 	resp, err := json.Marshal(output)
+// 	if err != nil {
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	if _, err = w.Write(resp); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
+// 	w.Header().Set("Content-Type", "application/json")
+// 	w.WriteHeader(status)
+// 	if _, err = w.Write(resp); err != nil {
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 	}
+// }
 
 func publicationResult(w http.ResponseWriter, h *Controller, expandedURL link.ExpandedURL, status int) {
 	w.Header().Set("Content-Type", "text/html")

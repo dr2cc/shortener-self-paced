@@ -39,15 +39,6 @@ func getDecompressedReader(r *http.Request) (io.ReadCloser, error) {
 	return r.Body, nil
 }
 
-// // Respond для быстрой отправки ответов
-// func Respond(w http.ResponseWriter, code int, data interface{}) {
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.WriteHeader(code)
-// 	if data != nil {
-// 		_ = json.NewEncoder(w).Encode(data)
-// 	}
-// }
-
 // Respond — отправляет JSON, автоматически сжимая его при необходимости
 func Respond(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
