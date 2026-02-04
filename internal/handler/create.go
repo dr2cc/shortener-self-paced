@@ -4,35 +4,18 @@ import (
 	"app/internal/domain/link"
 	"app/internal/lib/api/dto"
 	err_repo "app/internal/lib/repository"
+	"app/internal/service"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 )
 
-func apiPublicationResult(w http.ResponseWriter, h *Controller, expandedURL link.ExpandedURL, status int) {
-	res := dto.ResponseShorten{
-		Result: h.service.FormatShortURL(expandedURL.ID),
-	}
-
-	// marshalling - сортировка (сериализация) в json
-	out, err := json.Marshal(res)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-
-	if _, err = w.Write(out); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-// Назову json post ручку ShortenAPI - обычно при помощи json создают интерфейс
 func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
+	// 1️⃣ Принимаем данные.
 	var input dto.RequestShorten
+
+	// TODO: Вынести анмаршалинг в отдельную функцию? Оформить отдельным пакетом?
 
 	reader, err := getDecompressedReader(r)
 	if err != nil {
@@ -40,38 +23,62 @@ func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// десериализуем данные json
 	if errDecode := json.NewDecoder(reader).Decode(&input); errDecode != nil {
 		http.Error(w, "cannot decode json", http.StatusBadRequest)
 		return
-	}
+	} // 2️⃣ Десериализуем (анмаршалинг) данные из сети и заполняем (.Decode(&input)) DTO
 
-	// Так как анмарщаллинг происходит с данными в ExpandedURL,
-	// то структурный тег поля OriginalURL в ExpandedURL ("url")
-	// должен совпадать с ключем "url" запроса, иначе будет "url required"
+	// Проверяем заполненность URL
 	if input.URL == "" {
 		http.Error(w, "url required", http.StatusBadRequest)
 		return
 	}
 
-	// Если нет ошибок и значение url уникально, то err == nil
-	// Если url не уникален, то
-	// err == link.ExpandedURL{OriginalURL: url, ID:urlID},  &shorteningError{Err:err, ShortURL: shortURL}
-	newLink, err := h.service.ShortenURL(r.Context(), input.URL)
-
-	// Iter13 генерация нужного ответа - 409
-	var notUniqueErr *err_repo.NotUniqueURLError
-	if errors.As(err, &notUniqueErr) {
-		apiPublicationResult(w, h, newLink, http.StatusConflict)
-		return
+	// Превращаем input (dto.RequestShorten) в serviceInput (service.SingleInput)
+	serviceInput := service.SingleInput{
+		URL: input.URL,
 	}
 
+	// 3️⃣ Отдаем в сервис "чистые" (без json из dto) данные и получаем данные для ответа
+	link, err := h.service.ShortenURL(r.Context(), serviceInput.URL)
+	// Если нет ошибок и значение url уникально, то
+	// err == nil
+	// Если url не уникален, то
+	// err == &shorteningError{Err:err, ShortURL: shortURL}
+	var notUniqueErr *err_repo.NotUniqueURLError
+	if errors.As(err, &notUniqueErr) {
+		// url не уникальный. iter13
+		responseShortenAPI(w, h, link, http.StatusConflict)
+		return
+	}
+	// В случае если ошибка не связана с уникальностью
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	apiPublicationResult(w, h, newLink, http.StatusCreated)
+	// успех
+	responseShortenAPI(w, h, link, http.StatusCreated)
+}
+
+func responseShortenAPI(w http.ResponseWriter, h *Controller, expandedURL link.ExpandedURL, status int) {
+	// Заполняем структуру для ответа
+	output := dto.ResponseShorten{
+		Result: h.service.FormatShortURL(expandedURL.ID),
+	}
+
+	// 4️⃣ Сериалиазуем (marshalling).
+	resp, err := json.Marshal(output)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if _, err = w.Write(resp); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func publicationResult(w http.ResponseWriter, h *Controller, expandedURL link.ExpandedURL, status int) {

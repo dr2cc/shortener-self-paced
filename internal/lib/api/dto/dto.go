@@ -1,3 +1,5 @@
+// DTO (Data Transfer Object) нужны исключительно как «переводчики» между внешним миром (JSON)
+// и кодом проекта (Service/Domain).
 // ❗В идеальной чистой архитектуре service не должен знать о пакете dto.
 package dto
 
@@ -30,9 +32,9 @@ type ResponseShortenBatch struct {
 	ShortURL      string `json:"short_url"`
 }
 
-// DTO. Cтруктура только для парсинга запроса
+// DTO. Cтруктура только для парсинга запроса.
 // Чтобы хендлер не "пачкал" Entity своими JSON-тегами,
-// создал DTO прямо в пакете хендлера.
+// создал DTO.
 // Это позволит API меняться, не трогая бизнес-логику.
 type RequestShorten struct {
 	URL string `json:"url"`

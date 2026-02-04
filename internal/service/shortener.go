@@ -36,14 +36,6 @@ func NewShortService(repo storage.ShortURLRepository, gen *generator.StringGener
 // Service (shortener) решает, что нужно создать ссылку❗
 // Link (Домен) предоставляет фабрику link.New() для сборки объекта.
 
-// Чтобы сервис стал по-настоящему независимым («чистым»),
-// он должен принимать данные в своих собственных терминах или в примитивах.
-// Структура-посредник (собственный примитив).
-type BatchInput struct {
-	OriginalURL   string
-	CorrelationID string
-}
-
 // ShortenBatch мапит массив входящих данных в []link.ExpandedURL
 func (sh ShortService) ShortenBatch(ctx context.Context, batch []BatchInput) ([]link.ExpandedURL, error) {
 	newLinkBatch := make([]link.ExpandedURL, len(batch))

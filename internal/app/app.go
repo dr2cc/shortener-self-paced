@@ -122,7 +122,6 @@ func Run(cfg *config.Config) error {
 
 	case sig := <-quit:
 		log.Info("ShortenerApp is shutting down", slog.String("signal", sig.String()))
-		//log.Info("ShortenerApp is shutting down")
 
 		// ВАЖНО: после получения первого сигнала, остальные не слушаем. Это вернет стандартное поведение системы.
 		signal.Stop(quit)
@@ -137,12 +136,6 @@ func Run(cfg *config.Config) error {
 	}
 
 	// // TODO: Close storage
-	// if err := db.Close(); err != nil {
-	// 	// Я не использую логгер logrus
-	// 	// logrus.Errorf("error occured on db connection close: %s", err.Error())
-	// 	log.Error("error occured on db connection close", sl.Err(err))
-	// 	os.Exit(1)
-	// }
 
 	return nil
 }
