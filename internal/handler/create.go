@@ -12,25 +12,13 @@ import (
 )
 
 func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
-	// 1️⃣ Принимаем данные.
 	var input dto.RequestShorten
+	var notUniqueErr *err_repo.NotUniqueURLError
 
+	// 1️⃣ Принимаем данные из сети, 2️⃣ десериализуем и заполняем (, &input) DTO
 	if !httpio.Decode(w, r, &input) {
 		return // Хелпер обработал все ошибки за нас, просто выходим
-	} // 2️⃣ Десериализуем (анмаршалинг) данные из сети и заполняем (, &input) DTO
-
-	// // TODO: Вынести анмаршалинг в отдельную функцию? Оформить отдельным пакетом?
-
-	// reader, err := getDecompressedReader(r)
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-
-	// if errDecode := json.NewDecoder(reader).Decode(&input); errDecode != nil {
-	// 	http.Error(w, "cannot decode json", http.StatusBadRequest)
-	// 	return
-	// } // 2️⃣ Десериализуем (анмаршалинг) данные из сети и заполняем (.Decode(&input)) DTO
+	}
 
 	// Проверяем заполненность URL
 	if input.URL == "" {
@@ -45,8 +33,6 @@ func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: явно корявая реализация ifs ❌ исправить!
 	// 3️⃣ Отдаем в сервис "чистые" (без json из dto) данные и получаем данные для ответа
-	var notUniqueErr *err_repo.NotUniqueURLError
-
 	link, err := h.service.ShortenURL(r.Context(), serviceInput.URL)
 	if err == nil || errors.As(err, &notUniqueErr) {
 		// Заполняем структуру для ответа
@@ -54,11 +40,11 @@ func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 			Result: h.service.FormatShortURL(link.ID),
 		}
 		if errors.As(err, &notUniqueErr) {
-			// url не уникальный. iter13
-			httpio.Respond(w, r, 409, output)
-			//responseShortenAPI(w, h, link, http.StatusConflict)
+			// 4️⃣ Возвращаем клиенту response
+			httpio.Respond(w, r, 409, output) // url не уникальный. iter13
 			return
 		}
+		// 4️⃣ Возвращаем клиенту response
 		httpio.Respond(w, r, 201, output) // успех
 	}
 
@@ -67,30 +53,7 @@ func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	// // успех
-	// responseShortenAPI(w, h, link, http.StatusCreated)
 }
-
-// func responseShortenAPI(w http.ResponseWriter, h *Controller, expandedURL link.ExpandedURL, status int) {
-// 	// Заполняем структуру для ответа
-// 	output := dto.ResponseShorten{
-// 		Result: h.service.FormatShortURL(expandedURL.ID),
-// 	}
-
-// 	// 4️⃣ Сериалиазуем (marshalling).
-// 	resp, err := json.Marshal(output)
-// 	if err != nil {
-// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.WriteHeader(status)
-// 	if _, err = w.Write(resp); err != nil {
-// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-// 	}
-// }
 
 func publicationResult(w http.ResponseWriter, h *Controller, expandedURL link.ExpandedURL, status int) {
 	w.Header().Set("Content-Type", "text/html")

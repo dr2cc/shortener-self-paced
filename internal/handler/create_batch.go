@@ -15,23 +15,12 @@ import (
 // 4️⃣ Возвращаем клиенту response.
 
 func (h *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
-	// 1️⃣ Принимаем данные.
 	var input dto.BatchRequest
 
+	// 1️⃣ Принимаем данные из сети, 2️⃣ десериализуем и заполняем (, &input) DTO
 	if !httpio.Decode(w, r, &input) {
 		return // Хелпер всё сделал за нас, просто выходим
-	} // 2️⃣ Десериализуем (анмаршалинг) данные из сети и заполняем (, &input) DTO
-
-	// reader, err := getDecompressedReader(r)
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-
-	// if errDecode := json.NewDecoder(reader).Decode(&input); errDecode != nil {
-	// 	http.Error(w, "cannot decode json", http.StatusBadRequest)
-	// 	return
-	// }
+	}
 
 	// Проверяем заполненность URL
 	if err := input.Validate(); err != nil {
@@ -64,6 +53,9 @@ func (h *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 			ShortURL:      h.service.FormatShortURL(shortURLBatch.ID),
 		}
 	}
+
+	// ❌TODO: переделать сериализацию на
+	// httpio.Respond(
 
 	// 4️⃣ Сериалиазуем (маршаллинг).
 	resp, err := json.Marshal(output)
