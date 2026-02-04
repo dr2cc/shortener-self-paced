@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -70,10 +71,11 @@ func Respond(w http.ResponseWriter, r *http.Request, code int, data interface{})
 	// Кодируем данные в JSON и записываем в writer (либо gzip, либо обычный)
 	if data != nil {
 		if err := json.NewEncoder(writer).Encode(data); err != nil {
-			// В случае ошибки кодирования или записи, логируем или обрабатываем
-			// Здесь для простоты проигнорирована детальная обработка ошибки записи
-			// после WriteHeader, что может быть сложно корректно обработать.
-			// В реальном приложении может потребоваться более сложная логика.
+			// Если произошла ошибка ПРИ записи ответа:
+			// 1. Мы не можем отправить http.Error, так как статус-код уже отправлен.
+			// 2. Единственный вариант — залогировать ошибку для администратора.
+			log.Printf("ERROR: httpio.Respond failed to encode/write response: %v", err)
+			// TODO: передавать сюда логгер
 		}
 	}
 }

@@ -17,7 +17,7 @@ func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	var input dto.RequestShorten
 
 	if !httpio.Decode(w, r, &input) {
-		return // Хелпер всё сделал за нас, просто выходим
+		return // Хелпер обработал все ошибки за нас, просто выходим
 	} // 2️⃣ Десериализуем (анмаршалинг) данные из сети и заполняем (, &input) DTO
 
 	// // TODO: Вынести анмаршалинг в отдельную функцию? Оформить отдельным пакетом?
