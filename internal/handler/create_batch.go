@@ -2,6 +2,7 @@ package handler
 
 import (
 	"app/internal/lib/api/dto"
+	"app/internal/lib/httpio"
 	"app/internal/service"
 	"encoding/json"
 	"net/http"
@@ -17,16 +18,20 @@ func (h *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 	// 1️⃣ Принимаем данные.
 	var input dto.BatchRequest
 
-	reader, err := getDecompressedReader(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	if !httpio.Decode(w, r, &input) {
+		return // Хелпер всё сделал за нас, просто выходим
+	} // 2️⃣ Десериализуем (анмаршалинг) данные из сети и заполняем (, &input) DTO
 
-	if errDecode := json.NewDecoder(reader).Decode(&input); errDecode != nil {
-		http.Error(w, "cannot decode json", http.StatusBadRequest)
-		return
-	} // 2️⃣ Десериализуем (анмаршалинг) данные из сети и заполняем (.Decode(&input)) DTO
+	// reader, err := getDecompressedReader(r)
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+
+	// if errDecode := json.NewDecoder(reader).Decode(&input); errDecode != nil {
+	// 	http.Error(w, "cannot decode json", http.StatusBadRequest)
+	// 	return
+	// }
 
 	// Проверяем заполненность URL
 	if err := input.Validate(); err != nil {

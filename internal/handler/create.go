@@ -3,6 +3,7 @@ package handler
 import (
 	"app/internal/domain/link"
 	"app/internal/lib/api/dto"
+	"app/internal/lib/httpio"
 	err_repo "app/internal/lib/repository"
 	"app/internal/service"
 	"encoding/json"
@@ -15,18 +16,22 @@ func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	// 1️⃣ Принимаем данные.
 	var input dto.RequestShorten
 
-	// TODO: Вынести анмаршалинг в отдельную функцию? Оформить отдельным пакетом?
+	if !httpio.Decode(w, r, &input) {
+		return // Хелпер всё сделал за нас, просто выходим
+	} // 2️⃣ Десериализуем (анмаршалинг) данные из сети и заполняем (, &input) DTO
 
-	reader, err := getDecompressedReader(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	// // TODO: Вынести анмаршалинг в отдельную функцию? Оформить отдельным пакетом?
 
-	if errDecode := json.NewDecoder(reader).Decode(&input); errDecode != nil {
-		http.Error(w, "cannot decode json", http.StatusBadRequest)
-		return
-	} // 2️⃣ Десериализуем (анмаршалинг) данные из сети и заполняем (.Decode(&input)) DTO
+	// reader, err := getDecompressedReader(r)
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+
+	// if errDecode := json.NewDecoder(reader).Decode(&input); errDecode != nil {
+	// 	http.Error(w, "cannot decode json", http.StatusBadRequest)
+	// 	return
+	// } // 2️⃣ Десериализуем (анмаршалинг) данные из сети и заполняем (.Decode(&input)) DTO
 
 	// Проверяем заполненность URL
 	if input.URL == "" {
@@ -48,7 +53,8 @@ func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	var notUniqueErr *err_repo.NotUniqueURLError
 	if errors.As(err, &notUniqueErr) {
 		// url не уникальный. iter13
-		responseShortenAPI(w, h, link, http.StatusConflict)
+		httpio.Respond(w, r, 409, link)
+		//responseShortenAPI(w, h, link, http.StatusConflict)
 		return
 	}
 	// В случае если ошибка не связана с уникальностью
