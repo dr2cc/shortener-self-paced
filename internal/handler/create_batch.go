@@ -4,8 +4,6 @@ import (
 	"app/internal/lib/api/dto"
 	"app/internal/lib/httpio"
 	"app/internal/service"
-	"encoding/json"
-	"log"
 	"net/http"
 )
 
@@ -56,19 +54,19 @@ func (h *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ❌TODO: переделать сериализацию на
-	// httpio.Respond(
+	// 4️⃣ Возвращаем клиенту response
+	httpio.Respond(w, r, 201, output) // успех
 
-	// 4️⃣ Сериалиазуем (маршаллинг).
-	resp, err := json.Marshal(output)
+	// // 4️⃣ Сериалиазуем (маршаллинг).
+	// resp, err := json.Marshal(output)
 	// if err != nil {
 	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
 	// 	return
 	// }
 
-	w.Header().Set("Content-Type", "application/json")
+	// w.Header().Set("Content-Type", "application/json")
 	// w.WriteHeader(http.StatusCreated)
-	if _, err = w.Write(resp); err != nil {
-		//http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Printf("ERROR: handler.BatchShortenAPI failed to encode/write response: %v", err)
-	}
+	// if _, err = w.Write(resp); err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// }
 }
