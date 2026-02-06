@@ -53,9 +53,9 @@ func (h *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// ❌TODO: переделать сериализацию на
 	// 4️⃣ Возвращаем клиенту response
-	httpio.Respond(w, r, 201, output) // успех
+	// Для тяжелых данных (batch ничем не ограничен) используем стрим
+	httpio.RespondStream(w, r, 201, output) // успех
 
 	// // 4️⃣ Сериалиазуем (маршаллинг).
 	// resp, err := json.Marshal(output)
