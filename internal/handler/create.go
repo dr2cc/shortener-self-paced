@@ -31,28 +31,36 @@ func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 		URL: input.URL,
 	}
 
-	// TODO: явно корявая реализация ifs ❌ исправить!
 	// 3️⃣ Отдаем в сервис "чистые" (без json из dto) данные и получаем данные для ответа
+	// 1. Пытаемся сократить URL
 	link, err := h.service.ShortenURL(r.Context(), serviceInput.URL)
-	if err == nil || errors.As(err, &notUniqueErr) {
-		// Заполняем структуру для ответа
-		output := dto.ResponseShorten{
-			Result: h.service.FormatShortURL(link.ID),
-		}
-		if errors.As(err, &notUniqueErr) {
-			// 4️⃣ Возвращаем клиенту response
-			httpio.Respond(w, r, 409, output) // url не уникальный. iter13
-			return
-		}
-		// 4️⃣ Возвращаем клиенту response
-		httpio.Respond(w, r, 201, output) // успех
-	}
 
-	// В случае если ошибка не связана с уникальностью
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 2. Сначала проверяем фатальные ошибки (БД упала, сеть пропала и т.д.)
+	// ЕСЛИ ошибка есть И это НЕ статус 409
+	if err != nil && !errors.As(err, &notUniqueErr) {
+		// Используем ваш httpio для ошибок, чтобы сохранить формат JSON (если нужно)
+		httpio.Respond(w, r, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
+	// Мы сначала "отсекли" плохие ошибки. Теперь основной поток кода (счастливый путь + 409) идет прямо, без вложенных if.
+
+	// 3. Если мы здесь, значит всё "ОК" (либо создали новый, либо нашли старый 409).
+	// В обоих случаях нам нужно сформировать один и тот же ответ.
+	output := dto.ResponseShorten{
+		Result: h.service.FormatShortURL(link.ID),
+	}
+
+	// Один раз создаем output и один раз вызываем Respond. Это избавляет от ошибок при будущем изменении формата ответа.
+
+	// 4. Выбираем статус-код
+	status := http.StatusCreated // 201 по умолчанию
+	if errors.As(err, &notUniqueErr) {
+		status = http.StatusConflict // 409 если не уникален
+	}
+
+	// 5. Отправляем ответ один раз
+	httpio.Respond(w, r, status, output)
+
 }
 
 func publicationResult(w http.ResponseWriter, h *Controller, expandedURL link.ExpandedURL, status int) {
