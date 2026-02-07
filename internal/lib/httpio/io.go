@@ -18,14 +18,17 @@ func Decode(w http.ResponseWriter, r *http.Request, v interface{}) bool {
 	reader, err := getDecompressedReader(r)
 	if err != nil {
 		log.Printf("httpio: decompression error: %v", err)
-		http.Error(w, "failed to decompress body", http.StatusInternalServerError)
+		// http.Error(w, "failed to decompress body", http.StatusInternalServerError)
+		// Используем Respond с nil, так как тело запроса битое, gzip-ответа тут не будет
+		Respond(w, nil, http.StatusInternalServerError, map[string]string{"error": "internal decompression error"})
 		return false
 	}
 	defer reader.Close()
 
 	if err := json.NewDecoder(reader).Decode(v); err != nil {
 		log.Printf("httpio: decode error: %v", err)
-		http.Error(w, "invalid json format", http.StatusBadRequest)
+		// http.Error(w, "invalid json format", http.StatusBadRequest)
+		Respond(w, nil, http.StatusBadRequest, map[string]string{"error": "invalid json format"})
 		return false
 	}
 
@@ -50,23 +53,22 @@ func Respond(w http.ResponseWriter, r *http.Request, code int, data interface{})
 	// 2. Устанавливаем базовый заголовок
 	w.Header().Set("Content-Type", "application/json")
 
-	// 3. Проверяем поддержку gzip
-	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && len(buf) > 0 {
+	// 3. Безопасная проверка Gzip (r может быть nil)
+	canGzip := r != nil && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
+
+	if canGzip && len(buf) > 0 {
 		w.Header().Set("Content-Encoding", "gzip")
 		w.WriteHeader(code)
-
 		gz := gzip.NewWriter(w)
-		if _, err := gz.Write(buf); err != nil {
-			log.Printf("httpio: gzip write error: %v", err)
-		}
+		_, _ = gz.Write(buf)
 		gz.Close()
 		return
 	}
 
-	// 4. Обычный ответ без сжатия
+	// 4. Обычный ответ
 	w.WriteHeader(code)
 	if len(buf) > 0 {
-		w.Write(buf)
+		_, _ = w.Write(buf)
 	}
 }
 
