@@ -1,9 +1,7 @@
 package httpio
 
 import (
-	"compress/gzip"
 	"encoding/json"
-	"io"
 	"log/slog"
 	"net/http"
 )
@@ -110,12 +108,4 @@ func RespondStream(w http.ResponseWriter, r *http.Request, code int, data any) {
 	// 		log.Printf("httpio: stream encoding error: %v", err)
 	// 	}
 	// }
-}
-
-// GetDecompressedReader выбирает нужный ридер в зависимости от Content-Encoding
-func GetDecompressedReader(r *http.Request) (io.ReadCloser, error) {
-	if r.Header.Get("Content-Encoding") == "gzip" {
-		return gzip.NewReader(r.Body)
-	}
-	return r.Body, nil
 }

@@ -2,7 +2,6 @@ package mw
 
 import (
 	"compress/gzip"
-	"io"
 	"net/http"
 )
 
@@ -13,18 +12,24 @@ func DecompressRequest(next http.Handler) http.Handler {
 			// Создаем ридер. Если тело пустое, NewReader может вернуть EOF сразу.
 			gz, err := gzip.NewReader(r.Body)
 			if err != nil {
-				if err == io.EOF {
-					// Если тело просто пустое, идем дальше с оригинальным Body
-					next.ServeHTTP(w, r)
-					return
-				}
-				// Если данные битые — возвращаем 400
-				http.Error(w, "gzip: "+err.Error(), http.StatusBadRequest)
+				// if err == io.EOF {
+				// 	// Если тело просто пустое, идем дальше с оригинальным Body
+				// 	next.ServeHTTP(w, r)
+				// 	return
+				// }
+				// // Если данные битые — возвращаем 400
+				// http.Error(w, "gzip: "+err.Error(), http.StatusBadRequest)
+				// return
+				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
 
-			// Оборачиваем закрытие: когда r.Body закроется, закроется и gzip
-			defer gz.Close()
+			// // Оборачиваем закрытие: когда r.Body закроется, закроется и gzip
+			// defer gz.Close()
+			// Удаляем заголовок, чтобы хендлеры не пытались распаковать тело снова
+			r.Header.Del("Content-Encoding")
+			r.Header.Del("Content-Length") // Длина изменилась после распаковки
+
 			r.Body = gz
 		}
 

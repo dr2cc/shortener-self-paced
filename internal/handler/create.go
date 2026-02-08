@@ -109,41 +109,27 @@ func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func publicationResult(w http.ResponseWriter, h *Controller, expandedURL link.ExpandedURL, status int) {
-	w.Header().Set("Content-Type", "text/html")
-	w.WriteHeader(status)
-	content := h.service.FormatShortURL(expandedURL.ID)
-	if _, err := w.Write([]byte(content)); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
 func (h *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
-	// 1️⃣ Принимаем данные от клиента
-	reader, err := httpio.GetDecompressedReader(r)
+	// 1️⃣ Принимаем данные от клиента.
+	// Читаем напрямую из r.Body (Middleware уже всё распаковало).
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "cannot read body", http.StatusBadRequest)
 		return
 	}
+	defer r.Body.Close()
 
-	url, err := io.ReadAll(reader)
-	// не получилось прочитать reader
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// пустой url
-	if string(url) == "" {
+	urlStr := string(body)
+	if urlStr == "" {
 		http.Error(w, "url required", http.StatusBadRequest)
 		return
 	}
 
 	// 3️⃣ Передаем данные в службу нашего приложения.
 	// Сервис возвращает структуру ExpandedURL
-	newLink, err := h.service.ShortenURL(r.Context(), string(url)) // , userID
+	newLink, err := h.service.ShortenURL(r.Context(), urlStr) // , userID
 
-	// ✔️ Проверка на уникальность. iter13 ♊ пишет, что это правильно!
+	// 3. ✔️ Проверка на уникальность. iter13 ♊ пишет, что это правильно!
 	// Сама проверка в методе Save (при записи в хранилище).
 	// Здесь генерируем нужный ответ - 409
 	var notUniqueErr *err_repo.NotUniqueURLError
@@ -155,9 +141,18 @@ func (h *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
 
 	// Эта ошибка на тот случай, если все наши if не сработали.
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	publicationResult(w, h, newLink, http.StatusCreated)
+}
+
+func publicationResult(w http.ResponseWriter, h *Controller, expandedURL link.ExpandedURL, status int) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(status)
+	content := h.service.FormatShortURL(expandedURL.ID)
+	if _, err := w.Write([]byte(content)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
