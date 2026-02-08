@@ -8,10 +8,15 @@ import (
 	"net/http"
 )
 
-// Вспомогательная функция для логгера
+// Вспомогательная функция для логгера. Безопасное извлечение логгера
 func getLogger(r *http.Request) *slog.Logger {
-	if logger, ok := r.Context().Value("logger").(*slog.Logger); ok {
-		return logger
+	// // Go запрещает использовать обычные строки в качестве ключей контекста,
+	// // потому что два разных пакета могут использовать ключ "logger", и один затрет другой.
+	// if logger, ok := r.Context().Value("logger").(*slog.Logger); ok {
+	if r != nil {
+		if log, ok := r.Context().Value(LoggerKey).(*slog.Logger); ok && log != nil {
+			return log
+		}
 	}
 	return slog.Default()
 }
@@ -37,17 +42,18 @@ func Decode(w http.ResponseWriter, r *http.Request, v any) bool {
 // Respond сериализует данные и отправляет их с учетом поддержки gzip клиентом.
 // Respond теперь не думает о gzip — за это отвечает middleware.Compress
 func Respond(w http.ResponseWriter, r *http.Request, code int, data any) {
-	log := getLogger(r)
+	var buf []byte
 
 	// 1. Сначала маршаллим в память, чтобы иметь возможность вернуть 500 при ошибке
-	//if data != nil {
-	buf, err := json.Marshal(data)
-	if err != nil {
-		log.Error("httpio: marshal failed", slog.Any("err", err))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
+	if data != nil {
+		var err error
+		buf, err = json.Marshal(data)
+		if err != nil {
+			getLogger(r).Error("marshal failed", slog.Any("err", err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
-	//}
 
 	// 2. Устанавливаем базовый заголовок
 	w.Header().Set("Content-Type", "application/json")
@@ -66,7 +72,9 @@ func Respond(w http.ResponseWriter, r *http.Request, code int, data any) {
 
 	// 3. Обычный ответ
 	w.WriteHeader(code)
-	w.Write(buf)
+	if len(buf) > 0 {
+		w.Write(buf)
+	}
 }
 
 // Для BatchShortenAPI

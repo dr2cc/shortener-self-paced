@@ -2,6 +2,7 @@
 package handler
 
 import (
+	"app/internal/lib/httpio"
 	mw "app/internal/lib/middleware"
 	"app/internal/service"
 	mwLogger "app/pkg/middleware/logger"
@@ -59,7 +60,10 @@ func (h *Controller) InitRoutes(log *slog.Logger) chi.Router {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Добавляем ID запроса в логгер, чтобы все логи этого запроса были связаны
 			logger := log.With(slog.String("request_id", middleware.GetReqID(r.Context())))
-			ctx := context.WithValue(r.Context(), "logger", logger)
+			// // Go запрещает использовать обычные строки в качестве ключей контекста,
+			// // потому что два разных пакета могут использовать ключ "logger", и один затрет другой.
+			// ctx := context.WithValue(r.Context(), "logger", logger)
+			ctx := context.WithValue(r.Context(), httpio.LoggerKey, logger)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	})
