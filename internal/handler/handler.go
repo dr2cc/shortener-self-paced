@@ -51,8 +51,11 @@ func NewHandler(service *service.Service) *Controller {
 func (h *Controller) InitRoutes(log *slog.Logger) chi.Router {
 	router := chi.NewRouter()
 
-	// 1. Присваиваем каждому запросу уникальный ID
+	// 1. Базовое:
+	// Присваиваем каждому запросу уникальный ID
 	router.Use(middleware.RequestID)
+	// Паника не должна ронять сервер
+	router.Use(middleware.Recoverer) // Переместили выше, чтобы страховать всё остальное
 
 	// router.Use(middleware.Logger)
 	// 2. ♊Кладем наш slog в контекст (чтобы httpio мог его достать)
@@ -68,13 +71,14 @@ func (h *Controller) InitRoutes(log *slog.Logger) chi.Router {
 		})
 	})
 
-	// 3. Логируем сам факт запроса (к примеру URL, метод, время выполнения, статус)
-	router.Use(mwLogger.New(log))
-	// 4. Распаковываем входящий Gzip (если пришел gzip,
+	// 3. Распаковываем входящий Gzip (если пришел gzip,
 	// он распаковывается и подменяет r.Body)
 	router.Use(mw.DecompressRequest)
-	// 5. Паника не должна ронять сервер
-	router.Use(middleware.Recoverer)
+	// 4. Логируем сам факт запроса (к примеру URL, метод, время выполнения, статус)
+	router.Use(mwLogger.New(log))
+
+	// // 5. Паника не должна ронять сервер
+	// router.Use(middleware.Recoverer)
 	// 6. Если клиент хочет сжатый ответ,
 	// запись в w перехватывается и сжимается (gzip)
 	router.Use(middleware.Compress(flate.BestSpeed))
