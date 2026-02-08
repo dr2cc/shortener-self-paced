@@ -66,25 +66,20 @@ func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	var input dto.RequestShorten
 	var notUniqueErr *err_repo.NotUniqueURLError
 
+	// 1. Вся валидация транспорта в одной строке
 	// 1️⃣ Принимаем данные из сети, 2️⃣ десериализуем и заполняем (, &input) DTO
 	if !httpio.Decode(w, r, &input) {
 		return // Хелпер обработал все ошибки за нас, просто выходим
 	}
 
-	// Проверяем заполненность URL
+	// 2. Валидация заполненности URL (в едином стиле JSON-ответов)
 	if input.URL == "" {
-		http.Error(w, "url required", http.StatusBadRequest)
+		httpio.Respond(w, r, http.StatusBadRequest, map[string]string{"error": "url required"})
 		return
 	}
 
-	// Превращаем input (dto.RequestShorten) в serviceInput (service.SingleInput)
-	serviceInput := service.SingleInput{
-		URL: input.URL,
-	}
-
-	// 3️⃣ Отдаем в сервис "чистые" (без json из dto) данные и получаем данные для ответа
-	// 1. Пытаемся сократить URL
-	link, err := h.service.ShortenURL(r.Context(), serviceInput.URL)
+	// 3️⃣ // Пытаемся сократить URL. Просто вытаскиваем строку из DTO и отдаем сервису
+	link, err := h.service.ShortenURL(r.Context(), input.URL)
 
 	// 2. Сначала проверяем фатальные ошибки (БД упала, сеть пропала и т.д.)
 	// ЕСЛИ ошибка есть И это НЕ статус 409
@@ -125,7 +120,7 @@ func publicationResult(w http.ResponseWriter, h *Controller, expandedURL link.Ex
 
 func (h *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
 	// 1️⃣ Принимаем данные от клиента
-	reader, err := getDecompressedReader(r)
+	reader, err := httpio.GetDecompressedReader(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

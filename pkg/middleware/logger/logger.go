@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+// Логируем сам факт запроса (к примеру URL, метод, время выполнения, статус)
 func New(log *slog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		log = log.With(
