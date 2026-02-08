@@ -1,8 +1,7 @@
-package handler_test
+package handler
 
 import (
 	"app/internal/config"
-	handlers "app/internal/handler"
 	"app/internal/service"
 	"net/http"
 	"testing"
@@ -22,7 +21,7 @@ func TestHandler_Redirect(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := handlers.NewHandler(tt.service)
+			h := NewHandler(tt.service)
 			h.Redirect(tt.w, tt.r)
 		})
 	}
