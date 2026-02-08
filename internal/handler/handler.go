@@ -45,22 +45,16 @@ type ShortenerService interface {
 // Controller в качестве зависимости имеет указатель на структуру сервисов.
 // Так обработчики передают свои запросы на уровень ниже- в слой сервисов❗
 type Controller struct {
-	//service *service.Service // сервисы, содержащие бизнес-логику
+	//service *service.Service // так было без интерфейса
 	service ShortenerService // Теперь здесь интерфейс
 }
 
+// Called from the app, creates a new instance of the Controller
 func NewHandler(s ShortenerService) *Controller {
 	return &Controller{
 		service: s,
 	}
 }
-
-// // Called from the app, creates a new instance of the Controller
-// func NewHandler(service *service.Service) *Controller {
-// 	return &Controller{
-// 		service: service,
-// 	}
-// }
 
 // Called from app
 // InitRoutes — **карта маршрутов** приложения, определяющая точки входа API.
@@ -69,7 +63,6 @@ func NewHandler(s ShortenerService) *Controller {
 // Плюс: Сразу понятно, что это слой доставки (API).
 func (h *Controller) InitRoutes(log *slog.Logger) chi.Router {
 	router := chi.NewRouter()
-
 	// 1. Базовое:
 	// Присваиваем каждому запросу уникальный ID
 	router.Use(middleware.RequestID)
