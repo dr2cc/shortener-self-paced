@@ -27,6 +27,7 @@ import (
 // Controller **контролирует** процесс обработки входящего запроса.
 // Он не знает как работает бизнес-логика, но знает:
 // 1️⃣ Как извлечь данные из HTTP-запроса (JSON, query-параметры).
+// Как мапить❔❔
 // 3️⃣ Какой метод сервиса вызвать.
 // 4️⃣ Какой HTTP-статус и формат ответа вернуть клиенту.
 // Controller в качестве методов имеет все эндпойнты и "инициализатор" роутера.
@@ -55,9 +56,7 @@ func (h *Controller) InitRoutes(log *slog.Logger) chi.Router {
 	// Присваиваем каждому запросу уникальный ID
 	router.Use(middleware.RequestID)
 	// Паника не должна ронять сервер
-	router.Use(middleware.Recoverer) // Переместили выше, чтобы страховать всё остальное
-
-	// router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer) // Разместили здесь, чтобы страховать всё остальное
 	// 2. ♊Кладем наш slog в контекст (чтобы httpio мог его достать)
 	router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -70,17 +69,11 @@ func (h *Controller) InitRoutes(log *slog.Logger) chi.Router {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	})
-
-	// 3. Распаковываем входящий Gzip (если пришел gzip,
-	// он распаковывается и подменяет r.Body)
+	// 3. Распаковываем входящий Gzip (если пришел gzip, он распаковывается и подменяет r.Body)
 	router.Use(mw.DecompressRequest)
 	// 4. Логируем сам факт запроса (к примеру URL, метод, время выполнения, статус)
 	router.Use(mwLogger.New(log))
-
-	// // 5. Паника не должна ронять сервер
-	// router.Use(middleware.Recoverer)
-	// 6. Если клиент хочет сжатый ответ,
-	// запись в w перехватывается и сжимается (gzip)
+	// 5. Если клиент хочет сжатый ответ, запись в w перехватывается и сжимается (gzip)
 	router.Use(middleware.Compress(flate.BestSpeed))
 
 	// Роуты

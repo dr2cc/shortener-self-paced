@@ -58,7 +58,7 @@ func (h *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 4️⃣ Возвращаем клиенту response
-	// Для тяжелых данных (batch ничем не ограничен) используем стрим
+	// Для тяжелых данных (batch ничем не ограничен) используем RespondStream
 	httpio.RespondStream(w, r, http.StatusCreated, output) // успех
 }
 
@@ -84,11 +84,12 @@ func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	// 2. Сначала проверяем фатальные ошибки (БД упала, сеть пропала и т.д.)
 	// ЕСЛИ ошибка есть И это НЕ статус 409
 	if err != nil && !errors.As(err, &notUniqueErr) {
-		// Используем ваш httpio для ошибок, чтобы сохранить формат JSON (если нужно)
+		// Используем httpio для ошибок, чтобы сохранить формат JSON
 		httpio.Respond(w, r, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
-	// Мы сначала "отсекли" плохие ошибки. Теперь основной поток кода (счастливый путь + 409) идет прямо, без вложенных if.
+	// Мы "отсекли" плохие ошибки.
+	// Теперь основной поток кода (счастливый путь + 409) идет прямо, без вложенных if.
 
 	// 3. Если мы здесь, значит всё "ОК" (либо создали новый, либо нашли старый 409).
 	// В обоих случаях нам нужно сформировать один и тот же ответ.

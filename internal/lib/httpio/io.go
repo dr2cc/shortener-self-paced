@@ -56,18 +56,6 @@ func Respond(w http.ResponseWriter, r *http.Request, code int, data any) {
 	// 2. Устанавливаем базовый заголовок
 	w.Header().Set("Content-Type", "application/json")
 
-	// // 3. Безопасная проверка Gzip (r может быть nil)
-	// canGzip := r != nil && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
-
-	// if canGzip && len(buf) > 0 {
-	// 	w.Header().Set("Content-Encoding", "gzip")
-	// 	w.WriteHeader(code)
-	// 	gz := gzip.NewWriter(w)
-	// 	_, _ = gz.Write(buf)
-	// 	gz.Close()
-	// 	return
-	// }
-
 	// 3. Обычный ответ
 	w.WriteHeader(code)
 	if len(buf) > 0 {
@@ -84,28 +72,4 @@ func RespondStream(w http.ResponseWriter, r *http.Request, code int, data any) {
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		getLogger(r).Error("httpio: stream encode failed", slog.Any("err", err))
 	}
-
-	// var writer io.Writer = w
-	// var gz *gzip.Writer
-
-	// // Проверяем поддержку gzip
-	// if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-	// 	w.Header().Set("Content-Encoding", "gzip")
-	// 	gz = gzip.NewWriter(w)
-	// 	writer = gz
-	// 	// В случае со стримом закрываем gzip в самом конце
-	// 	defer gz.Close()
-	// }
-
-	// // Отправляем статус ПЕРЕД кодированием
-	// w.WriteHeader(code)
-
-	// if data != nil {
-	// 	// Пишем JSON напрямую в поток (w или gz)
-	// 	if err := json.NewEncoder(writer).Encode(data); err != nil {
-	// 		// Здесь мы уже отправили Header, поэтому просто логируем ошибку.
-	// 		// Клиент получит оборванный JSON, что укажет ему на сбой.
-	// 		log.Printf("httpio: stream encoding error: %v", err)
-	// 	}
-	// }
 }
