@@ -2,6 +2,7 @@
 package handler
 
 import (
+	"app/internal/domain/link"
 	"app/internal/lib/httpio"
 	mw "app/internal/lib/middleware"
 	"app/internal/service"
@@ -24,6 +25,16 @@ import (
 // Суть: Это точка входа в приложение для внешнего мира.
 // Этот слой «доставляет» данные из внешнего протокола (HTTP, gRPC, CLI) внутрь бизнес-логики и обратно.
 
+// ShortenerService описывает всё, что Controller хочет от бизнес-логики.
+// Этот интерфейс "покрывает" методы твоей структуры Service.
+type ShortenerService interface {
+	FormatShortURL(urlID string) string
+	ShortenURL(ctx context.Context, url string) (link.ExpandedURL, error)
+	ShortenBatch(ctx context.Context, batch []service.BatchInput) ([]link.ExpandedURL, error)
+	FindURL(ctx context.Context, id string) (link.ExpandedURL, error)
+	CheckHealth(ctx context.Context) error
+}
+
 // Controller **контролирует** процесс обработки входящего запроса.
 // Он не знает как работает бизнес-логика, но знает:
 // 1️⃣ Как извлечь данные из HTTP-запроса (JSON, query-параметры).
@@ -34,15 +45,22 @@ import (
 // Controller в качестве зависимости имеет указатель на структуру сервисов.
 // Так обработчики передают свои запросы на уровень ниже- в слой сервисов❗
 type Controller struct {
-	service *service.Service // сервисы, содержащие бизнес-логику
+	//service *service.Service // сервисы, содержащие бизнес-логику
+	service ShortenerService // Теперь здесь интерфейс
 }
 
-// Called from the app, creates a new instance of the Controller
-func NewHandler(service *service.Service) *Controller {
+func NewHandler(s ShortenerService) *Controller {
 	return &Controller{
-		service: service,
+		service: s,
 	}
 }
+
+// // Called from the app, creates a new instance of the Controller
+// func NewHandler(service *service.Service) *Controller {
+// 	return &Controller{
+// 		service: service,
+// 	}
+// }
 
 // Called from app
 // InitRoutes — **карта маршрутов** приложения, определяющая точки входа API.
