@@ -146,6 +146,7 @@ func (h *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 4️⃣ Возвращаем клиенту response.
 	publicationResult(w, h, newLink, http.StatusCreated)
 }
 
