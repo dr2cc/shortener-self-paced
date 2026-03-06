@@ -42,7 +42,7 @@ func (h *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 3️⃣ Отдаем в сервис "чистые" (без json из dto) данные и получаем данные для ответа
-	linkBatch, err := h.service.ShortenBatch(r.Context(), serviceInput)
+	linkBatch, err := h.shortener.ShortenBatch(r.Context(), serviceInput)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -53,7 +53,7 @@ func (h *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
 	for i, shortURLBatch := range linkBatch {
 		output[i] = dto.ResponseShortenBatch{
 			CorrelationID: shortURLBatch.CorrelationID,
-			ShortURL:      h.service.FormatShortURL(shortURLBatch.ID),
+			ShortURL:      h.shortener.FormatShortURL(shortURLBatch.ID),
 		}
 	}
 
@@ -79,7 +79,7 @@ func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 3️⃣ // Пытаемся сократить URL. Просто вытаскиваем строку из DTO и отдаем сервису
-	link, err := h.service.ShortenURL(r.Context(), input.URL)
+	link, err := h.shortener.ShortenURL(r.Context(), input.URL)
 
 	// 2. Сначала проверяем фатальные ошибки (БД упала, сеть пропала и т.д.)
 	// ЕСЛИ ошибка есть И это НЕ статус 409
@@ -94,7 +94,7 @@ func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 	// 3. Если мы здесь, значит всё "ОК" (либо создали новый, либо нашли старый 409).
 	// В обоих случаях нам нужно сформировать один и тот же ответ.
 	output := dto.ResponseShorten{
-		Result: h.service.FormatShortURL(link.ID),
+		Result: h.shortener.FormatShortURL(link.ID),
 	}
 
 	// Один раз создаем output и один раз вызываем Respond. Это избавляет от ошибок при будущем изменении формата ответа.
@@ -128,7 +128,7 @@ func (h *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
 
 	// 3️⃣ Передаем данные в службу нашего приложения.
 	// Сервис возвращает структуру ExpandedURL
-	newLink, err := h.service.ShortenURL(r.Context(), urlStr) // , userID
+	newLink, err := h.shortener.ShortenURL(r.Context(), urlStr) // , userID
 
 	// 3. ✔️ Проверка на уникальность. iter13 ♊ пишет, что это правильно!
 	// Сама проверка в методе Save (при записи в хранилище).
@@ -153,7 +153,7 @@ func (h *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
 func publicationResult(w http.ResponseWriter, h *Controller, expandedURL link.ExpandedURL, status int) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(status)
-	content := h.service.FormatShortURL(expandedURL.ID)
+	content := h.shortener.FormatShortURL(expandedURL.ID)
 	if _, err := w.Write([]byte(content)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

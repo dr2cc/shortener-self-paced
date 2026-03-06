@@ -25,13 +25,17 @@ import (
 // Суть: Это точка входа в приложение для внешнего мира.
 // Этот слой «доставляет» данные из внешнего протокола (HTTP, gRPC, CLI) внутрь бизнес-логики и обратно.
 
-// ShortenerService описывает всё, что Controller хочет от бизнес-логики.
-// Этот интерфейс "покрывает" методы твоей структуры Service.
-type ShortenerService interface {
+// Интерфейс ShortenerUseCase ИСПОЛЬЗУЕТСЯ в пакете handler (РЕАЛИЗУЕТСЯ он в service),
+// так как описывает всё, что Controller хочет от бизнес-логики. Интерфейс— это граница взаимодействия.
+// ShortenerUseCase это интерфейс ко всем методам структуры Service.
+type ShortenerUseCase interface {
 	FormatShortURL(urlID string) string
 	ShortenURL(ctx context.Context, url string) (link.ExpandedURL, error)
 	ShortenBatch(ctx context.Context, batch []service.BatchInput) ([]link.ExpandedURL, error)
 	FindURL(ctx context.Context, id string) (link.ExpandedURL, error)
+}
+
+type PingerUseCase interface {
 	CheckHealth(ctx context.Context) error
 }
 
@@ -45,14 +49,17 @@ type ShortenerService interface {
 // Controller в качестве зависимости имеет указатель на структуру сервисов.
 // Так обработчики передают свои запросы на уровень ниже- в слой сервисов❗
 type Controller struct {
-	//service *service.Service // так было без интерфейса
-	service ShortenerService // Теперь здесь интерфейс
+	//service *service.Service // Без интерфейсов. В таком случае интерфейсы здесь вообще не нужны
+	shortener ShortenerUseCase // Теперь здесь интерфейсы
+	health    PingerUseCase
 }
 
 // Called from the app, creates a new instance of the Controller
-func NewHandler(s ShortenerService) *Controller {
+func NewHandler(services *service.Service) *Controller {
+	//func NewHandler(s ShortenerService) *Controller {
 	return &Controller{
-		service: s,
+		shortener: services,
+		health:    services,
 	}
 }
 

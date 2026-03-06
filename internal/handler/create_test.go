@@ -19,8 +19,14 @@ import (
 func TestHandler_ShortenAPI(t *testing.T) {
 	// 1. Общая настройка
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := &mockService{} // Твой мок-объект
-	ctrl := NewHandler(svc)
+	svc := &mockService{} // Мой мок-объект
+
+	// // так было до разделения интерфейса ShortenerService на ShortenerUseCase и PingerUseCase
+	// ctrl := NewHandler(svc)
+	ctrl := &Controller{
+		shortener: svc,
+		health:    svc,
+	}
 
 	// 2. Описание всех сценариев
 	tests := []struct {
