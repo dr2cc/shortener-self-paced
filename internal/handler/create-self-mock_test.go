@@ -21,9 +21,9 @@ func TestHandler_ShortenAPI(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := &mockService{} // Мой мок-объект
 
-	// // так было до разделения интерфейса ShortenerService на ShortenerUseCase и PingerUseCase
-	// ctrl := NewHandler(svc)
-	ctrl := &Controller{
+	// Это не контроллер в понимании моков, а контроллер в понимании слоя обработчиков
+	// Не буду называть ctrl, назову handler
+	handler := &Controller{
 		shortener: svc,
 		health:    svc,
 	}
@@ -82,7 +82,7 @@ func TestHandler_ShortenAPI(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			// ВЫЗОВ
-			ctrl.ShortenAPI(w, req)
+			handler.ShortenAPI(w, req)
 
 			// ПРОВЕРКИ
 			assert.Equal(t, tt.expectedCode, w.Code)
