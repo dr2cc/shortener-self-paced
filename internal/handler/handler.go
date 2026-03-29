@@ -25,9 +25,9 @@ import (
 // Суть: Это точка входа в приложение для внешнего мира.
 // Этот слой «доставляет» данные из внешнего протокола (HTTP, gRPC, CLI) внутрь бизнес-логики и обратно.
 
-// Интерфейс ShortenerUseCase ИСПОЛЬЗУЕТСЯ в пакете handler (РЕАЛИЗУЕТСЯ он в service),
+// Интерфейс Shortener ИСПОЛЬЗУЕТСЯ в пакете handler (РЕАЛИЗУЕТСЯ он в service),
 // так как описывает всё, что Controller хочет от бизнес-логики. Интерфейс— это граница взаимодействия.
-// ShortenerUseCase это интерфейс ко всем методам структуры Service.
+// Shortener это интерфейс ко всем методам структуры Service.
 type Shortener interface {
 	FormatShortURL(urlID string) string
 	ShortenURL(ctx context.Context, url string) (link.ExpandedURL, error)
