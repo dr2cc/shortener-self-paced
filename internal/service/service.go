@@ -18,6 +18,8 @@ import (
 // Если ShortURL в сервисе будет повторять методы ShortURLRepository (здесь не так) из репозитория
 //
 //	— это правильно (принцип инверсии зависимостей).
+//
+//go:generate mockgen -source=$GOFILE -destination=mocks/mock.go
 type ShortURL interface {
 	// Функцонал:
 	// Форматирование ID в результирующую строку, нужна информация из cfg (единственному!)
