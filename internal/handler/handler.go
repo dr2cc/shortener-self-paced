@@ -28,7 +28,7 @@ import (
 // Интерфейс ShortenerUseCase ИСПОЛЬЗУЕТСЯ в пакете handler (РЕАЛИЗУЕТСЯ он в service),
 // так как описывает всё, что Controller хочет от бизнес-логики. Интерфейс— это граница взаимодействия.
 // ShortenerUseCase это интерфейс ко всем методам структуры Service.
-type ShortenerUseCase interface {
+type Shortener interface {
 	FormatShortURL(urlID string) string
 	ShortenURL(ctx context.Context, url string) (link.ExpandedURL, error)
 	ShortenBatch(ctx context.Context, batch []service.BatchInput) ([]link.ExpandedURL, error)
@@ -50,7 +50,7 @@ type PingerUseCase interface {
 // Так обработчики передают свои запросы на уровень ниже- в слой сервисов❗
 type Controller struct {
 	//service *service.Service // Без интерфейсов. В таком случае интерфейсы здесь вообще не нужны
-	shortener ShortenerUseCase // Теперь здесь интерфейсы
+	shortener Shortener // Теперь здесь интерфейсы
 	health    PingerUseCase
 }
 
