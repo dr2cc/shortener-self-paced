@@ -3,7 +3,6 @@ package handler
 import (
 	"app/internal/domain/link"
 	mock_service "app/internal/service/mocks"
-	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -11,102 +10,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
-// func TestController_Redirect(t *testing.T) {
-// 	// Объявляем имитацию поведения
-// 	type mockBehavior func(s *mock_service.MockShortURL, ctx context.Context, alias string)
-
-// 	tests := []struct {
-// 		name               string // description of this test case
-// 		alias              string
-// 		url                string
-// 		mockBehavior       mockBehavior
-// 		expectedStatusCode int
-// 	}{
-// 		{
-// 			name:               "successful redirect",
-// 			alias:              "abc123",
-// 			url:                "https://example.com",
-// 			expectedStatusCode: http.StatusTemporaryRedirect,
-// 			mockBehavior: func(s *mock_service.MockShortURL, ctx context.Context, alias string) {
-// 				s.EXPECT().
-// 					FindURL(ctx, alias).
-// 					Return(link.ExpandedURL{OriginalURL: "https://example.com"}, nil)
-// 			},
-// 		},
-// 		{
-// 			name:               "not found empty url",
-// 			alias:              "notfound",
-// 			expectedStatusCode: http.StatusNotFound,
-// 			mockBehavior: func(s *mock_service.MockShortURL, ctx context.Context, alias string) {
-// 				s.EXPECT().
-// 					FindURL(ctx, alias).
-// 					Return(link.ExpandedURL{OriginalURL: ""}, nil)
-// 			},
-// 		},
-// 		{
-// 			name:               "internal server error",
-// 			alias:              "error",
-// 			expectedStatusCode: http.StatusInternalServerError,
-// 			mockBehavior: func(s *mock_service.MockShortURL, ctx context.Context, alias string) {
-// 				s.EXPECT().
-// 					FindURL(ctx, alias).
-// 					Return(link.ExpandedURL{}, errors.New("database connection failed"))
-// 			},
-// 		},
-// 	}
-
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			ctrl := gomock.NewController(t)
-// 			// Создаёт мок‑объект (сгенерированный NewMockShortURL) для интерфейса ShortURL
-// 			// Мок‑объект привязывается к ctrl и будет использоваться вместо реального сервиса.
-// 			svc := mock_service.NewMockShortURL(ctrl)
-// 			ping := mock_service.NewMockPinger(ctrl) // Мок для PingerUseCase
-
-// 			// Background возвращает ненулевой, пустой Context.
-// 			// Она никогда не отменяется, не имеет значений и не имеет крайнего срока выполнения.
-// 			// Обычно она используется в основной функции, при инициализации и тестировании
-// 			ctx := context.Background()
-// 			// Вызываем функцию‑поле (структуры tests) mockBehavior для настройки ожидаемого поведения,
-// 			// чтобы настроить поведение мока svc (например, какие методы вызываются и что возвращают)
-// 			// для входных данных ctx и tt.alias
-// 			tt.mockBehavior(svc, ctx, tt.alias)
-
-// 			// Создаем handler с обоими интерфейсами
-// 			// теперь хендлер использует мок‑сервис при своей работе
-// 			handler := Controller{
-// 				shortener: svc,
-// 				health:    ping,
-// 			}
-
-// 			// Создаем тестовый роутер (без реального запуска HTTP‑сервера) с нашим хендлером
-// 			r := chi.NewRouter()
-// 			r.Get("/{id}", handler.Redirect)
-
-// 			// Создаем тестовый запрос
-// 			req, err := http.NewRequestWithContext(ctx, "GET", "/"+tt.alias, nil)
-// 			require.NoError(t, err)
-
-// 			// Выполняем запрос и проверяем результат
-// 			rr := httptest.NewRecorder()
-// 			r.ServeHTTP(rr, req)
-
-// 			assert.Equal(t, tt.expectedStatusCode, rr.Code)
-
-// 			if tt.expectedStatusCode == http.StatusTemporaryRedirect {
-// 				assert.Equal(t, "https://example.com", rr.Header().Get("Location"))
-// 				assert.Equal(t, "text/html", rr.Header().Get("Content-Type"))
-// 			}
-// 		})
-// 	}
-// }
-
 func TestController_Redirect(t *testing.T) {
-	// Объявляем имитацию поведения, игнорируя контекст
+	// Объявляем имитацию поведения FindURL, игнорируя контекст (контекст - это ответственность сервиса, а не контроллера)
 	type mockBehavior func(s *mock_service.MockShortURL, alias string)
 
 	tests := []struct {
@@ -123,14 +31,14 @@ func TestController_Redirect(t *testing.T) {
 			expectedStatusCode: http.StatusTemporaryRedirect,
 			mockBehavior: func(s *mock_service.MockShortURL, alias string) {
 				s.EXPECT().
-					FindURL(gomock.Any(), alias). // ✅ gomock.Any() для контекста!
+					FindURL(gomock.Any(), alias). // ✅ gomock.Any()= "принимай любой контекст, мне все равно"
 					Return(link.ExpandedURL{OriginalURL: "https://example.com"}, nil)
 			},
 		},
 		{
 			name:               "not found empty url",
 			alias:              "notfound",
-			expectedStatusCode: http.StatusNotFound,
+			expectedStatusCode: http.StatusBadRequest,
 			mockBehavior: func(s *mock_service.MockShortURL, alias string) {
 				s.EXPECT().
 					FindURL(gomock.Any(), alias).
@@ -152,31 +60,37 @@ func TestController_Redirect(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
+			// Создаёт мок‑объекты (сгенерированные NewMockShortURL) для интерфейсов ShortURL и Pinger.
+			// Мок‑объект привязывается к ctrl и будет использоваться вместо реального сервиса.
 			svc := mock_service.NewMockShortURL(ctrl)
 			ping := mock_service.NewMockPinger(ctrl)
-
+			// Вызываем функцию‑поле (структуры testTable) mockBehavior БЕЗ ctx
+			// Настроиваем поведение мока svc в текущем тест-кейсе для входных данных tt.alias
+			tt.mockBehavior(svc, tt.alias)
+			// Создаем handler с обоими интерфейсами
+			// теперь хендлер использует мок‑сервисы при своей работе
 			handler := Controller{
 				shortener: svc,
 				health:    ping,
 			}
-
+			// Создаем тестовый роутер, без реального запуска HTTP‑сервера
 			r := chi.NewRouter()
+			// Регистрируем маршрут
 			r.Get("/{id}", handler.Redirect)
 
-			req, err := http.NewRequestWithContext(context.Background(), "GET", "/"+tt.alias, nil)
-			require.NoError(t, err)
+			w := httptest.NewRecorder()                          // Имитация ResponseWriter
+			req := httptest.NewRequest("GET", "/"+tt.alias, nil) // Имитация запроса
 
-			// ✅ Вызываем mockBehavior БЕЗ ctx - контекст игнорируется
-			tt.mockBehavior(svc, tt.alias)
+			// Имитация работы HTTP‑сервера в памяти
+			r.ServeHTTP(w, req)
 
-			rr := httptest.NewRecorder()
-			r.ServeHTTP(rr, req)
-
-			assert.Equal(t, tt.expectedStatusCode, rr.Code)
-
+			// Проверяет, что HTTP‑статус‑код ответа (w.Code) совпадает с ожидаемым test.expectedStatusCode (200, 400, ...).
+			assert.Equal(t, tt.expectedStatusCode, w.Code)
+			// В случае если tt.expectedStatusCode == 307 (успешный редирект). Остальные кейсы (400, 500) НЕ имеют заголовков Location
+			// if защищает от паники когда заголовков Location нет
 			if tt.expectedStatusCode == http.StatusTemporaryRedirect {
-				assert.Equal(t, tt.url, rr.Header().Get("Location"))
-				assert.Equal(t, "text/html", rr.Header().Get("Content-Type"))
+				assert.Equal(t, tt.url, w.Header().Get("Location"))
+				assert.Equal(t, "text/html", w.Header().Get("Content-Type"))
 			}
 		})
 	}

@@ -17,7 +17,7 @@ func (h *Controller) Redirect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if shortURL.OriginalURL == "" {
-		http.Error(w, "cant find full url", http.StatusNotFound)
+		http.Error(w, "cant find full url", http.StatusBadRequest)
 		return
 	}
 
