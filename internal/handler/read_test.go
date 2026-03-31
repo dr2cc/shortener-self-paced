@@ -63,7 +63,8 @@ func TestController_Redirect(t *testing.T) {
 			// Создаёт мок‑объекты (сгенерированные NewMockShortURL) для интерфейсов ShortURL и Pinger.
 			// Мок‑объект привязывается к ctrl и будет использоваться вместо реального сервиса.
 			svc := mock_service.NewMockShortURL(ctrl)
-			ping := mock_service.NewMockPinger(ctrl)
+			//ping := mock_service.NewMockPinger(ctrl) // ping здесь не тестируем, можно и без него!
+
 			// Вызываем функцию‑поле (структуры testTable) mockBehavior БЕЗ ctx
 			// Настроиваем поведение мока svc в текущем тест-кейсе для входных данных tt.alias
 			tt.mockBehavior(svc, tt.alias)
@@ -71,7 +72,7 @@ func TestController_Redirect(t *testing.T) {
 			// теперь хендлер использует мок‑сервисы при своей работе
 			handler := Controller{
 				shortener: svc,
-				health:    ping,
+				//health:    ping,
 			}
 			// Создаем тестовый роутер, без реального запуска HTTP‑сервера
 			r := chi.NewRouter()
