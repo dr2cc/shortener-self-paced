@@ -2,6 +2,7 @@ package handler
 
 import (
 	"app/internal/domain/link"
+	err_repo "app/internal/lib/repository"
 	mock_service "app/internal/service/mocks"
 	"net/http"
 	"net/http/httptest"
@@ -13,31 +14,38 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+const (
+	testBaseURL   = "http://localhost:8080"
+	expectedAlias = "abc123"
+)
+
 func TestController_ShortenText(t *testing.T) {
-	// 1️⃣Arrange
-	type mockBehavior func(s *mock_service.MockShortURL, url string, alias string)
+	// 🔸Arrange
+	type mockBehavior func(s *mock_service.MockShortURL, url string)
 
 	tests := []struct {
 		name               string
 		url                string
-		mockBehavior       mockBehavior
-		expectedAlias      string
 		expectedStatusCode int
+		mockBehavior       mockBehavior
 	}{
 		{
 			name:               "successful url shortening",
 			url:                "https://example.com",
 			expectedStatusCode: http.StatusCreated,
-			expectedAlias:      "abc123",
-			mockBehavior: func(s *mock_service.MockShortURL, url string, alias string) {
-				gomock.InOrder( // Устанавливает порядок вызовов. Не строго обязателен.
-					// 1. Ожидаем вызов сокращения (вернет ID)
+			mockBehavior: func(s *mock_service.MockShortURL, url string) {
+				gomock.InOrder( // устанавливает порядок вызовов. Метод InOrder не обязателен.
+					// 1️⃣ При обращении к объекту s мы будем ОЖИДАТЬ().
 					s.EXPECT().
+						// 2️⃣ что вызов метода (структуры MockShortURLMockRecorder) ShortenURL(gomock.Any(), url)
 						ShortenURL(gomock.Any(), url).
-						Return(link.ExpandedURL{OriginalURL: url, ID: alias}, nil),
+						// 3️⃣ тестируемому коду Вернет(link.ExpandedURL{OriginalURL: url, ID: expectedAlias}, nil)
+						// (имитацию ответа от Controller.shortener.ShortenURL(...) (link.ExpandedURL, error))
+						Return(link.ExpandedURL{OriginalURL: url, ID: expectedAlias}, nil),
 					// 2. СРАЗУ ЖЕ ожидаем вызов форматирования (вернет полный URL)
-					s.EXPECT().FormatShortURL(alias).
-						Return(url),
+					// Следующим мы ОЖИДАЕМ().FormatShortURL()
+					s.EXPECT().FormatShortURL(expectedAlias).
+						Return(testBaseURL+"/"+expectedAlias),
 				)
 			},
 		},
@@ -45,45 +53,61 @@ func TestController_ShortenText(t *testing.T) {
 			name:               "empty URL",
 			url:                "",
 			expectedStatusCode: http.StatusBadRequest,
-			mockBehavior: func(s *mock_service.MockShortURL, url string, alias string) {
+			mockBehavior: func(s *mock_service.MockShortURL, url string) {
 				// Ничего не пишем!
 				// Мы НЕ ожидаем никаких вызовов сервиса, так как хендлер должен отсечь пустой URL сразу.
-				//  Отсутствие лишних вызовов (Mocks)
 				//
-				// Поскольку используется gomock, проверка того, что методы сервиса НЕ вызывались при плохих входных данных
-				// (как в этом тесте с пустым URL) — это тоже часть проверки поведения.
+				// "Немного" 🔸🔸🔸Assert
+				// Проверка отсутствие лишних вызовов (проверка того, что методы сервиса НЕ вызывались при плохих входных данных
+				// (пустой URL) — это тоже часть проверки поведения).
 				// Если mockBehavior оставлен пустым для ошибки 400, gomock сам проверит, что лишних вызовов не было.
 			},
 		},
+		{
+			name:               "conflict - url already exists",
+			url:                "https://example.com",
+			expectedStatusCode: http.StatusConflict,
+			mockBehavior: func(s *mock_service.MockShortURL, url string) {
+				// gomock.InOrder() здесь не используем- работает!
+				// В случае конфликта ShortenURL здесь возвращает заполненную структуру и нашу специфическую ошибку
+				s.EXPECT().ShortenURL(gomock.Any(), url).
+					Return(link.ExpandedURL{OriginalURL: url, ID: expectedAlias}, &err_repo.NotUniqueURLError{})
+				s.EXPECT().FormatShortURL(expectedAlias).
+					Return(testBaseURL + "/" + expectedAlias)
+			},
+		},
 	}
-	// 2️⃣Act
+	// 🔸🔸Act
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)                // gomock сontroller
-			svc := mock_service.NewMockShortURL(ctrl)      // мок сервиса
-			tt.mockBehavior(svc, tt.url, tt.expectedAlias) // настройка мока
-			handler := Controller{                         // хендлер с моком "внутри"
+			ctrl := gomock.NewController(t)           // gomock сontroller
+			svc := mock_service.NewMockShortURL(ctrl) // мок сервиса
+			// 🔧настройка мока
+			tt.mockBehavior(svc, tt.url)
+
+			handler := Controller{ // хендлер с моком "внутри"
 				shortener: svc,
 			}
 			r := chi.NewRouter()             // тестовый маршрутизатор
 			r.Post("/", handler.ShortenText) // маршрут
 
 			w := httptest.NewRecorder() // Имитация ResponseWriter
-			// В httptest.NewRequest (Имитация запроса), target (второй аргумент) всегда "/..." (путь), он не может быть ""
+			// 🔧В httptest.NewRequest (Имитация запроса), target (второй аргумент) всегда "/..." (путь), он не может быть ""
 			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.url)) // тестируемый URL передаем в тело
 
 			r.ServeHTTP(w, req) // Имитация работы HTTP‑сервера в памяти
-			// 3️⃣Assert
+			// 🔸🔸🔸Assert 🔧
 			assert.Equal(t, tt.expectedStatusCode, w.Code)
-
-			// // Не проверял!!!
-			// // Сравниваем полученную строку с ожидаемой
-			// assert.Equal(t, tt.expectedShortURL, string(resBody))
-			// // Заголовки (Headers)
-			// assert.Equal(t, "text/plain; charset=utf-8", w.Header().Get("Content-Type"))
-			// // Длина ответа
-			// //Если ID генерируется случайно (и ты не мокаешь его жестко), можно проверить хотя бы непустоту ответа или его длину.
-			// assert.NotEmpty(t, string(resBody))
+			// Если вернулся StatusCreated, то нет смысла проверять строку. Если StatusBadRequest тоже- нет строки ответа.
+			// Отстается StatusConflict , но и тут не однозначна необходимость...
+			if tt.expectedStatusCode == http.StatusConflict {
+				// Сравниваем полученную строку с ожидаемой
+				assert.Equal(t, testBaseURL+"/"+expectedAlias, w.Body.String())
+				// // Другой вариант проверки полученной строки- можно проверить непустоту ответа или его длину.
+				// assert.NotEmpty(t, w.Body.String())
+			}
+			// // Заголовки (Headers). Не понятно когда использовать..
+			// assert.Equal(t, "text/plain", w.Header().Get("Content-Type"))
 		})
 	}
 }

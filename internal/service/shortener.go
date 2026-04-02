@@ -110,7 +110,7 @@ func (sh ShortService) FindURL(ctx context.Context, id string) (link.ExpandedURL
 	return origURL, nil
 }
 
-// FormatShortURL форматирование полученного ID (путем конкатенации с BaseURL из cfg)
+// FormatShortURL производит форматирование полученного ID (путем конкатенации с BaseURL из cfg)
 // в результирующую строку, возвращаемую запросами POST
 func (sh ShortService) FormatShortURL(urlID string) string {
 	return fmt.Sprintf("%s/%s", sh.cfg.BaseURL, urlID)

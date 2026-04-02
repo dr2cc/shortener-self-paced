@@ -111,6 +111,9 @@ func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
+	// to test // этот случай не будем тестировать.
+	// // В реальной жизни такая ошибка случается крайне редко (например, если соединение оборвалось прямо во время передачи данных).
+	// // в обычном тесте через httptest.NewRequest получить ошибку чтения тела практически невозможно, так как bytes.Buffer или strings.Reader всегда отдают данные успешно.
 	// 1️⃣ Принимаем данные от клиента.
 	// Читаем напрямую из r.Body (Middleware уже всё распаковало).
 	body, err := io.ReadAll(r.Body)
@@ -130,6 +133,7 @@ func (h *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
 	// Сервис возвращает структуру ExpandedURL
 	newLink, err := h.shortener.ShortenURL(r.Context(), urlStr) // , userID
 
+	// to test // Посмотреть как решали этот случай в других проектах
 	// 3. ✔️ Проверка на уникальность. iter13 ♊ пишет, что это правильно!
 	// Сама проверка в методе Save (при записи в хранилище).
 	// Здесь генерируем нужный ответ - 409
