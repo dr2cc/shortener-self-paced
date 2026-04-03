@@ -12,12 +12,6 @@ func DecompressRequest(next http.Handler) http.Handler {
 			// Создаем ридер. Если тело пустое, NewReader может вернуть EOF сразу.
 			gz, err := gzip.NewReader(r.Body)
 			if err != nil {
-				// if err == io.EOF {
-				// 	// Если тело просто пустое, идем дальше с оригинальным Body
-				// 	next.ServeHTTP(w, r)
-				// 	return
-				// }
-
 				// Если данные битые — возвращаем 400
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return

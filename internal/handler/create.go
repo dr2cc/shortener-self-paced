@@ -133,20 +133,23 @@ func (h *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
 	// Сервис возвращает структуру ExpandedURL
 	newLink, err := h.shortener.ShortenURL(r.Context(), urlStr) // , userID
 
-	// to test // Посмотреть как решали этот случай в других проектах
 	// 3. ✔️ Проверка на уникальность. iter13 ♊ пишет, что это правильно!
 	// Сама проверка в методе Save (при записи в хранилище).
 	// Здесь генерируем нужный ответ - 409
 	var notUniqueErr *err_repo.NotUniqueURLError
 	if errors.As(err, &notUniqueErr) {
-		// 4️⃣ Возвращаем клиенту response.
-		publicationResult(w, h, newLink, http.StatusConflict)
+		// // 4️⃣ Возвращаем клиенту response.
+		// publicationResult(w, h, newLink, http.StatusConflict)
+		content := h.shortener.FormatShortURL(newLink.ID)
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(content))
 		return
 	}
 
 	// Эта ошибка на тот случай, если все наши if не сработали.
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError) //StatusBadRequest)
 		return
 	}
 
@@ -155,10 +158,22 @@ func (h *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
 }
 
 func publicationResult(w http.ResponseWriter, h *Controller, expandedURL link.ExpandedURL, status int) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(status)
+	// 1. Сначала готовим данные
 	content := h.shortener.FormatShortURL(expandedURL.ID)
-	if _, err := w.Write([]byte(content)); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+
+	// 2. Устанавливаем заголовки
+	w.Header().Set("Content-Type", "text/plain")
+
+	// 3. Отправляем статус
+	w.WriteHeader(status)
+
+	// 4. Пишем тело (ошибку тут обычно просто игнорируют)
+	_, _ = w.Write([]byte(content))
+
+	// w.Header().Set("Content-Type", "text/plain")
+	// w.WriteHeader(status)
+	// content := h.shortener.FormatShortURL(expandedURL.ID)
+	// if _, err := w.Write([]byte(content)); err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// }
 }

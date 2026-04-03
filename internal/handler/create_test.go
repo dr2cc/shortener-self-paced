@@ -4,6 +4,7 @@ import (
 	"app/internal/domain/link"
 	err_repo "app/internal/lib/repository"
 	mock_service "app/internal/service/mocks"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -74,6 +75,18 @@ func TestController_ShortenText(t *testing.T) {
 					Return(link.ExpandedURL{OriginalURL: url, ID: expectedAlias}, &err_repo.NotUniqueURLError{})
 				s.EXPECT().FormatShortURL(expectedAlias).
 					Return(testBaseURL + "/" + expectedAlias)
+			},
+		},
+		{
+			name:               "service failure (500)",
+			url:                "https://example.com",
+			expectedStatusCode: http.StatusInternalServerError,
+			mockBehavior: func(s *mock_service.MockShortURL, url string) {
+				// Имитируем любую системную ошибку
+				s.EXPECT().ShortenURL(gomock.Any(), url).
+					Return(link.ExpandedURL{}, errors.New("database connection failed"))
+
+				// s.EXPECT().FormatShortURL НЕ вызовется, так как выполнение прервется на ошибке 500
 			},
 		},
 	}
