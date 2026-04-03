@@ -4,7 +4,10 @@ import (
 	"app/internal/domain/link"
 	err_repo "app/internal/lib/repository"
 	mock_service "app/internal/service/mocks"
+	"bytes"
+	"compress/gzip"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -123,4 +126,37 @@ func TestController_ShortenText(t *testing.T) {
 			// assert.Equal(t, "text/plain", w.Header().Get("Content-Type"))
 		})
 	}
+}
+
+// 03.04.2026 Не ожиданно получил Тестирование всей цепочки (Integration-тест) для gzip
+// Работает! Не знаю правильный ли он, оставлю
+func TestController_GzipIntegration(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	svc := mock_service.NewMockShortURL(ctrl)
+
+	// Настраиваем роутер ТАК ЖЕ, как в основном приложении (с Middleware)
+	handler := &Controller{shortener: svc}
+	r := handler.InitRoutes(slog.Default()) // Используем твой метод InitRoutes!
+
+	// 1. Готовим сжатые данные для запроса
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	gz.Write([]byte("https://example.com"))
+	gz.Close()
+
+	// 2. Ожидаем вызовы (как обычно)
+	svc.EXPECT().ShortenURL(gomock.Any(), "https://example.com").Return(link.ExpandedURL{ID: "abc123"}, nil)
+	svc.EXPECT().FormatShortURL("abc123").Return("http://localhost:8080/abc123")
+
+	// 3. Делаем запрос с нужными заголовками
+	req := httptest.NewRequest(http.MethodPost, "/", &buf)
+	req.Header.Set("Content-Encoding", "gzip") // Чтобы сработал DecompressRequest
+	req.Header.Set("Accept-Encoding", "gzip")  // Чтобы сработал Compress
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	// 4. Проверяем результат
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, "gzip", w.Header().Get("Content-Encoding")) // Проверка, что сжатие ответа сработало
 }
