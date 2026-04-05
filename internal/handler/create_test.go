@@ -128,7 +128,7 @@ func TestController_ShortenText(t *testing.T) {
 	}
 }
 
-// 03.04.2026 Не ожиданно получил Тестирование всей цепочки (Integration-тест) для gzip
+// 03.04.2026 Неожиданно получил Тестирование всей цепочки (Integration-тест) для gzip
 // Работает! Не знаю правильный ли он, оставлю
 func TestController_GzipIntegration(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -159,4 +159,74 @@ func TestController_GzipIntegration(t *testing.T) {
 	// 4. Проверяем результат
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.Equal(t, "gzip", w.Header().Get("Content-Encoding")) // Проверка, что сжатие ответа сработало
+}
+
+func TestController_ShortenAPI(t *testing.T) {
+	// 🔸Arrange
+	type mockBehavior func(s *mock_service.MockShortURL, url string, mockError error, expectedJSON string)
+
+	tests := []struct {
+		name               string
+		url                string
+		expectedStatusCode int
+		mockError          error
+		expectedJSON       string
+		mockBehavior       mockBehavior
+	}{
+		{
+			name:               "successful url shortening",
+			url:                `{"url": "https://example.com"}`,
+			expectedStatusCode: http.StatusCreated,
+			mockError:          nil,
+			expectedJSON:       `{"result":"http://localhost:8080/abc123"}`,
+			mockBehavior: func(s *mock_service.MockShortURL, url string, mockError error, expectedJSON string) {
+				gomock.InOrder( // устанавливает порядок вызовов. Метод InOrder не обязателен.
+					// 1️⃣ При обращении к объекту s мы будем ОЖИДАТЬ().
+					s.EXPECT().
+						// 2️⃣ что вызов метода (структуры MockShortURLMockRecorder) ShortenURL(gomock.Any(), url)
+						ShortenURL(gomock.Any(), url).
+						// 3️⃣ тестируемому коду Вернет(link.ExpandedURL{OriginalURL: url, ID: expectedAlias}, nil)
+						// (имитацию ответа от Controller.shortener.ShortenURL(...) (link.ExpandedURL, error))
+						Return(link.ExpandedURL{OriginalURL: url, ID: expectedAlias}, mockError),
+					// 2. СРАЗУ ЖЕ ожидаем вызов форматирования (вернет полный URL)
+					// Следующим мы ОЖИДАЕМ().FormatShortURL()
+					s.EXPECT().FormatShortURL(expectedAlias).
+						Return(expectedJSON),
+				)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)           // gomock сontroller
+			svc := mock_service.NewMockShortURL(ctrl) // мок сервиса
+			// 🔧настройка мока
+			tt.mockBehavior(svc, tt.url, tt.mockError, tt.expectedJSON)
+
+			handler := Controller{ // хендлер с моком "внутри"
+				shortener: svc,
+			}
+			r := chi.NewRouter() // тестовый маршрутизатор
+			// 🔧маршрут
+			r.Post("/api/shorten", handler.ShortenAPI)
+
+			w := httptest.NewRecorder() // Имитация ResponseWriter
+			// 🔧В httptest.NewRequest (Имитация запроса), target (второй аргумент) всегда "/..." (путь), он не может быть ""
+			req := httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(tt.url)) // тестируемый URL передаем в тело
+
+			r.ServeHTTP(w, req) // Имитация работы HTTP‑сервера в памяти
+			// 🔸🔸🔸Assert 🔧
+			assert.Equal(t, tt.expectedStatusCode, w.Code)
+			// // Если вернулся StatusCreated, то нет смысла проверять строку. Если StatusBadRequest тоже- нет строки ответа.
+			// // Отстается StatusConflict , но и тут не однозначна необходимость...
+			// if tt.expectedStatusCode == http.StatusConflict {
+			// 	// Сравниваем полученную строку с ожидаемой
+			// 	assert.Equal(t, testBaseURL+"/"+expectedAlias, w.Body.String())
+			// 	// // Другой вариант проверки полученной строки- можно проверить непустоту ответа или его длину.
+			// 	// assert.NotEmpty(t, w.Body.String())
+			// }
+			// // Заголовки (Headers). Не понятно когда использовать..
+			// assert.Equal(t, "text/plain", w.Header().Get("Content-Type"))
+		})
+	}
 }
