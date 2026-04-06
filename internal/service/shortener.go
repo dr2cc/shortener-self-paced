@@ -23,6 +23,7 @@ type ShortService struct {
 	// (cfg может очень большим). Или только базовый URL или (видимо  лучше) структура в которую смапали cfg (только нужное поле)
 }
 
+// call from app
 func NewShortService(repo storage.ShortURLRepository, gen *generator.StringGenerator, cfg *config.Config) *ShortService {
 	return &ShortService{
 		repo:      repo,

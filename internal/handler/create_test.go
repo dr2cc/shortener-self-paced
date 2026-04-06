@@ -6,6 +6,7 @@ import (
 	mock_service "app/internal/service/mocks"
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -29,13 +30,13 @@ func TestController_ShortenText(t *testing.T) {
 
 	tests := []struct {
 		name               string
-		url                string
+		queryBody          string
 		expectedStatusCode int
 		mockBehavior       mockBehavior
 	}{
 		{
 			name:               "successful url shortening",
-			url:                "https://example.com",
+			queryBody:          "https://example.com",
 			expectedStatusCode: http.StatusCreated,
 			mockBehavior: func(s *mock_service.MockShortURL, url string) {
 				gomock.InOrder( // устанавливает порядок вызовов. Метод InOrder не обязателен.
@@ -54,8 +55,8 @@ func TestController_ShortenText(t *testing.T) {
 			},
 		},
 		{
-			name:               "empty URL",
-			url:                "",
+			name:               "empty url",
+			queryBody:          "",
 			expectedStatusCode: http.StatusBadRequest,
 			mockBehavior: func(s *mock_service.MockShortURL, url string) {
 				// Ничего не пишем!
@@ -69,7 +70,7 @@ func TestController_ShortenText(t *testing.T) {
 		},
 		{
 			name:               "conflict - url already exists",
-			url:                "https://example.com",
+			queryBody:          "https://example.com",
 			expectedStatusCode: http.StatusConflict,
 			mockBehavior: func(s *mock_service.MockShortURL, url string) {
 				// gomock.InOrder() здесь не используем- работает!
@@ -82,7 +83,7 @@ func TestController_ShortenText(t *testing.T) {
 		},
 		{
 			name:               "service failure (500)",
-			url:                "https://example.com",
+			queryBody:          "https://example.com",
 			expectedStatusCode: http.StatusInternalServerError,
 			mockBehavior: func(s *mock_service.MockShortURL, url string) {
 				// Имитируем любую системную ошибку
@@ -98,18 +99,20 @@ func TestController_ShortenText(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)           // gomock сontroller
 			svc := mock_service.NewMockShortURL(ctrl) // мок сервиса
-			// 🔧настройка мока
-			tt.mockBehavior(svc, tt.url)
+			// 🔧настройка мока сервиса ShortURL
+			tt.mockBehavior(svc, tt.queryBody)
 
 			handler := Controller{ // хендлер с моком "внутри"
 				shortener: svc,
 			}
-			r := chi.NewRouter()             // тестовый маршрутизатор
-			r.Post("/", handler.ShortenText) // маршрут
+			r := chi.NewRouter() // тестовый маршрутизатор
+			// 🎯Цель теста - проверка работы хендлера handler.ShortenText, на маршруте "/"
+			r.Post("/", handler.ShortenText)
 
 			w := httptest.NewRecorder() // Имитация ResponseWriter
 			// 🔧В httptest.NewRequest (Имитация запроса), target (второй аргумент) всегда "/..." (путь), он не может быть ""
-			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.url)) // тестируемый URL передаем в тело
+			// третий аргумент- объект Reader, считывающий данные из строки (наш queryBody)
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.queryBody))
 
 			r.ServeHTTP(w, req) // Имитация работы HTTP‑сервера в памяти
 			// 🔸🔸🔸Assert 🔧
@@ -164,18 +167,23 @@ func TestController_GzipIntegration(t *testing.T) {
 func TestController_ShortenAPI(t *testing.T) {
 	// 🔸Arrange
 	type mockBehavior func(s *mock_service.MockShortURL, url string, mockError error, expectedJSON string)
+	type queryBody struct {
+		URL string `json:"url"`
+	}
 
 	tests := []struct {
 		name               string
-		url                string
+		requestBody        queryBody
 		expectedStatusCode int
 		mockError          error
 		expectedJSON       string
 		mockBehavior       mockBehavior
 	}{
 		{
-			name:               "successful url shortening",
-			url:                `{"url": "https://example.com"}`,
+			name: "successful url shortening",
+			requestBody: queryBody{
+				URL: "https://example.com",
+			},
 			expectedStatusCode: http.StatusCreated,
 			mockError:          nil,
 			expectedJSON:       `{"result":"http://localhost:8080/abc123"}`,
@@ -196,38 +204,90 @@ func TestController_ShortenAPI(t *testing.T) {
 				)
 			},
 		},
+		{
+			name: "empty url",
+			requestBody: queryBody{
+				URL: "",
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			mockBehavior: func(s *mock_service.MockShortURL, url string, mockError error, expectedJSON string) {
+				// Ничего не пишем!
+				// Мы НЕ ожидаем никаких вызовов сервиса, так как хендлер должен отсечь пустой URL сразу.
+				//
+				// "Немного" 🔸🔸🔸Assert
+				// Проверка отсутствие лишних вызовов (проверка того, что методы сервиса НЕ вызывались при плохих входных данных
+				// (пустой URL) — это тоже часть проверки поведения).
+				// Если mockBehavior оставлен пустым для ошибки 400, gomock сам проверит, что лишних вызовов не было.
+			},
+		},
+		{
+			name: "conflict - url already exists",
+			requestBody: queryBody{
+				URL: "https://example.com",
+			},
+			expectedStatusCode: http.StatusConflict,
+			mockError:          &err_repo.NotUniqueURLError{}, // наша специфическая ошибка
+			expectedJSON:       `{"result":"http://localhost:8080/abc123"}`,
+			mockBehavior: func(s *mock_service.MockShortURL, url string, mockError error, expectedJSON string) {
+				s.EXPECT().ShortenURL(gomock.Any(), url).
+					Return(link.ExpandedURL{OriginalURL: url, ID: expectedAlias}, mockError)
+				s.EXPECT().FormatShortURL(expectedAlias).
+					Return(testBaseURL + "/" + expectedAlias)
+			},
+		},
+		{
+			name: "service failure (500)",
+			requestBody: queryBody{
+				URL: "https://example.com",
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+			mockError:          errors.New("database connection failed"), // Имитируем любую системную ошибку
+			mockBehavior: func(s *mock_service.MockShortURL, url string, mockError error, expectedJSON string) {
+				s.EXPECT().ShortenURL(gomock.Any(), url).
+					Return(link.ExpandedURL{}, mockError)
+
+				// s.EXPECT().FormatShortURL НЕ вызовется, так как выполнение прервется на ошибке 500
+			},
+		},
 	}
+	// 🔸🔸Act
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)           // gomock сontroller
-			svc := mock_service.NewMockShortURL(ctrl) // мок сервиса
-			// 🔧настройка мока
-			tt.mockBehavior(svc, tt.url, tt.mockError, tt.expectedJSON)
-
+			svc := mock_service.NewMockShortURL(ctrl) // мок сервиса ShortURL
+			// 🔧настройка мока сервиса ShortURL
+			// "удача"
+			// tt.requestBody.URL: "https://example.com",
+			// mockError:          nil,
+			// expectedJSON:       `{"result":"http://localhost:8080/abc123"}`,
+			tt.mockBehavior(svc, tt.requestBody.URL, tt.mockError, tt.expectedJSON)
+			// 📌Мок (здесь- сервиса ShortURL) должен предоставлять тестируемому объекту (здесь- handler.ShortenAPI)
+			// те данные, что вернула бы зависимость (к примеру сервис shortener) при реальной работе, в конкретной ситуации ("успех", "не правильное тело" и т.д.)
 			handler := Controller{ // хендлер с моком "внутри"
 				shortener: svc,
 			}
-			r := chi.NewRouter() // тестовый маршрутизатор
-			// 🔧маршрут
-			r.Post("/api/shorten", handler.ShortenAPI)
 
 			w := httptest.NewRecorder() // Имитация ResponseWriter
-			// 🔧В httptest.NewRequest (Имитация запроса), target (второй аргумент) всегда "/..." (путь), он не может быть ""
-			req := httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(tt.url)) // тестируемый URL передаем в тело
+			// 🔧Превращаем структуру в JSON-байты для отправки
+			body, _ := json.Marshal(tt.requestBody)
+			req := httptest.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer(body)) // Имитация запроса
+			// Для JSON эндпоинта обязательно добавляем заголовок
+			req.Header.Set("Content-Type", "application/json")
 
+			r := chi.NewRouter() // тестовый маршрутизатор
+			// 🎯Цель теста - проверка работы хендлера handler.ShortenAPI, на маршруте "/api/shorten"
+			r.Post("/api/shorten", handler.ShortenAPI)
 			r.ServeHTTP(w, req) // Имитация работы HTTP‑сервера в памяти
 			// 🔸🔸🔸Assert 🔧
 			assert.Equal(t, tt.expectedStatusCode, w.Code)
-			// // Если вернулся StatusCreated, то нет смысла проверять строку. Если StatusBadRequest тоже- нет строки ответа.
-			// // Отстается StatusConflict , но и тут не однозначна необходимость...
-			// if tt.expectedStatusCode == http.StatusConflict {
-			// 	// Сравниваем полученную строку с ожидаемой
-			// 	assert.Equal(t, testBaseURL+"/"+expectedAlias, w.Body.String())
-			// 	// // Другой вариант проверки полученной строки- можно проверить непустоту ответа или его длину.
-			// 	// assert.NotEmpty(t, w.Body.String())
-			// }
-			// // Заголовки (Headers). Не понятно когда использовать..
-			// assert.Equal(t, "text/plain", w.Header().Get("Content-Type"))
+			// Если вернулся StatusCreated, то нет смысла проверять строку. Если StatusBadRequest тоже- нет строки ответа.
+			// Отстается StatusConflict , но и тут не однозначна необходимость...
+			if tt.expectedStatusCode == http.StatusConflict {
+				// Сравниваем полученную строку с ожидаемой
+				assert.Equal(t, tt.expectedJSON, w.Body.String())
+				// // Другой вариант проверки полученной строки- можно проверить непустоту ответа или его длину.
+				// assert.NotEmpty(t, w.Body.String())
+			}
 		})
 	}
 }
