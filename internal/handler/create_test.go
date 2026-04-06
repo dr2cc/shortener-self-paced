@@ -188,10 +188,11 @@ func TestController_ShortenAPI(t *testing.T) {
 						// 3️⃣ тестируемому коду Вернет(link.ExpandedURL{OriginalURL: url, ID: expectedAlias}, nil)
 						// (имитацию ответа от Controller.shortener.ShortenURL(...) (link.ExpandedURL, error))
 						Return(link.ExpandedURL{OriginalURL: url, ID: expectedAlias}, mockError),
+					//Return(url),
 					// 2. СРАЗУ ЖЕ ожидаем вызов форматирования (вернет полный URL)
 					// Следующим мы ОЖИДАЕМ().FormatShortURL()
 					s.EXPECT().FormatShortURL(expectedAlias).
-						Return(expectedJSON),
+						Return(testBaseURL+"/"+expectedAlias), //expectedJSON),
 				)
 			},
 		},
