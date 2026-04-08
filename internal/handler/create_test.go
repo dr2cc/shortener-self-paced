@@ -3,6 +3,7 @@ package handler
 import (
 	"app/internal/domain/link"
 	err_repo "app/internal/lib/repository"
+	"app/internal/service"
 	mock_service "app/internal/service/mocks"
 	"bytes"
 	"compress/gzip"
@@ -277,6 +278,148 @@ func TestController_ShortenAPI(t *testing.T) {
 			r := chi.NewRouter() // тестовый маршрутизатор
 			// 🎯Цель теста - проверка работы хендлера handler.ShortenAPI, на маршруте "/api/shorten"
 			r.Post("/api/shorten", handler.ShortenAPI)
+			r.ServeHTTP(w, req) // Имитация работы HTTP‑сервера в памяти
+			// 🔸🔸🔸Assert 🔧
+			assert.Equal(t, tt.expectedStatusCode, w.Code)
+			// Если вернулся StatusCreated, то нет смысла проверять строку. Если StatusBadRequest тоже- нет строки ответа.
+			// Отстается StatusConflict , но и тут не однозначна необходимость...
+			if tt.expectedStatusCode == http.StatusConflict {
+				// Сравниваем полученную строку с ожидаемой
+				assert.Equal(t, tt.expectedJSON, w.Body.String())
+				// // Другой вариант проверки полученной строки- можно проверить непустоту ответа или его длину.
+				// assert.NotEmpty(t, w.Body.String())
+			}
+		})
+	}
+}
+
+func TestController_BatchShortenAPI(t *testing.T) {
+	// 🔸Arrange
+	type mockBehavior func(s *mock_service.MockShortURL,
+		batch []service.BatchInput,
+		mockError error,
+		expectedJSON string)
+
+	type batchRequest struct {
+		CorrelationID string `json:"correlation_id"`
+		OriginalURL   string `json:"original_url"`
+	}
+
+	tests := []struct {
+		name               string
+		requestBody        []batchRequest
+		expectedStatusCode int
+		mockError          error
+		expectedJSON       string
+		mockBehavior       mockBehavior
+	}{
+		{
+			name: "successful url shortening",
+			requestBody: []batchRequest{
+				{
+					CorrelationID: "1",
+					OriginalURL:   "https://example.com",
+				},
+				{
+					CorrelationID: "2",
+					OriginalURL:   "https://example-example.com",
+				},
+			},
+			expectedStatusCode: http.StatusCreated,
+			mockError:          nil,
+			//❌
+			expectedJSON: `{"result":"http://localhost:8080/abc123"}`,
+			mockBehavior: func(s *mock_service.MockShortURL, batch []service.BatchInput, mockError error, expectedJSON string) {
+				gomock.InOrder( // устанавливает порядок вызовов. Метод InOrder не обязателен.
+					// 1️⃣ При обращении к объекту s мы будем ОЖИДАТЬ().
+					s.EXPECT().
+						// 2️⃣ что вызов метода (структуры MockShortURLMockRecorder) ShortenBatch(gomock.Any(), batch)
+						ShortenBatch(gomock.Any(), batch).
+						// 3️⃣ тестируемому коду Вернет(link.ExpandedURL{OriginalURL: url, ID: expectedAlias}, nil)
+						//❌ (имитацию ответа от Controller.shortener.ShortenBatch(...) ([]link.ExpandedURL, error))
+						Return([]link.ExpandedURL{}, mockError),
+					//Return(url),
+					// 2. СРАЗУ ЖЕ ожидаем вызов форматирования (вернет полный URL)
+					// Следующим мы ОЖИДАЕМ().FormatShortURL()
+					s.EXPECT().FormatShortURL(expectedAlias).
+						Return(testBaseURL+"/"+expectedAlias), //expectedJSON),
+				)
+			},
+		},
+		// {
+		// 	name: "empty url",
+		// 	requestBody: queryBody{
+		// 		URL: "",
+		// 	},
+		// 	expectedStatusCode: http.StatusBadRequest,
+		// 	mockBehavior: func(s *mock_service.MockShortURL, batch []service.BatchInput, mockError error, expectedJSON string) {
+		// 		// Ничего не пишем!
+		// 		// Мы НЕ ожидаем никаких вызовов сервиса, так как хендлер должен отсечь пустой URL сразу.
+		// 		//
+		// 		// "Немного" 🔸🔸🔸Assert
+		// 		// Проверка отсутствие лишних вызовов (проверка того, что методы сервиса НЕ вызывались при плохих входных данных
+		// 		// (пустой URL) — это тоже часть проверки поведения).
+		// 		// Если mockBehavior оставлен пустым для ошибки 400, gomock сам проверит, что лишних вызовов не было.
+		// 	},
+		// },
+		// {
+		// 	name: "conflict - url already exists",
+		// 	requestBody: queryBody{
+		// 		URL: "https://example.com",
+		// 	},
+		// 	expectedStatusCode: http.StatusConflict,
+		// 	mockError:          &err_repo.NotUniqueURLError{}, // наша специфическая ошибка
+		// 	expectedJSON:       `{"result":"http://localhost:8080/abc123"}`,
+		// 	mockBehavior: func(s *mock_service.MockShortURL, batch []service.BatchInput, mockError error, expectedJSON string) {
+		// 		s.EXPECT().ShortenBatch(gomock.Any(), batch).
+		// 			Return(link.ExpandedURL{OriginalURL: url, ID: expectedAlias}, mockError)
+		// 		s.EXPECT().FormatShortURL(expectedAlias).
+		// 			Return(testBaseURL + "/" + expectedAlias)
+		// 	},
+		// },
+		// {
+		// 	name: "service failure (500)",
+		// 	requestBody: queryBody{
+		// 		URL: "https://example.com",
+		// 	},
+		// 	expectedStatusCode: http.StatusInternalServerError,
+		// 	mockError:          errors.New("database connection failed"), // Имитируем любую системную ошибку
+		// 	mockBehavior: func(s *mock_service.MockShortURL, batch []service.BatchInput, mockError error, expectedJSON string) {
+		// 		s.EXPECT().ShortenBatch(gomock.Any(), batch).
+		// 			Return(link.ExpandedURL{}, mockError)
+
+		// 		// s.EXPECT().FormatShortURL НЕ вызовется, так как выполнение прервется на ошибке 500
+		// 	},
+		// },
+	}
+	// 🔸🔸Act
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)           // gomock сontroller
+			svc := mock_service.NewMockShortURL(ctrl) // мок сервиса ShortURL
+			// 🔧настройка мока сервиса ShortURL
+			// "удача"
+			// tt.requestBody.URL: "https://example.com",
+			// mockError:          nil,
+			// expectedJSON:       `{"result":"http://localhost:8080/abc123"}`,
+			tt.mockBehavior(svc, tt.requestBody, tt.mockError, tt.expectedJSON)
+			// 📌Мок (здесь- сервиса ShortURL) должен предоставлять тестируемому объекту (здесь- handler.ShortenAPI)
+			// те данные, что вернула бы зависимость (к примеру сервис shortener) при реальной работе, в конкретной ситуации ("успех", "не правильное тело" и т.д.)
+			handler := Controller{ // хендлер с моком "внутри"
+				shortener: svc,
+			}
+
+			w := httptest.NewRecorder() // Имитация ResponseWriter
+			// Превращаем структуру в JSON-байты для отправки
+			body, _ := json.Marshal(tt.requestBody)
+			// 🔧Имитация запроса
+			req := httptest.NewRequest(http.MethodPost, "/api/shorten/batch", bytes.NewBuffer(body))
+			// Для JSON эндпоинта обязательно добавляем заголовок
+			req.Header.Set("Content-Type", "application/json")
+
+			r := chi.NewRouter() // тестовый маршрутизатор
+			// 🎯Цель теста - проверка работы хендлера handler.BatchShortenAPI, на маршруте "/api/shorten"
+			r.Post("/api/shorten", handler.BatchShortenAPI)
 			r.ServeHTTP(w, req) // Имитация работы HTTP‑сервера в памяти
 			// 🔸🔸🔸Assert 🔧
 			assert.Equal(t, tt.expectedStatusCode, w.Code)

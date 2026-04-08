@@ -13,7 +13,8 @@ type RequestShortenBatch struct {
 	OriginalURL   string `json:"original_url"`
 }
 
-// BatchRequest — это тип-обертка для слайса, чтобы добавить ему поведение
+// BatchRequest — это тип-обертка для слайса структр RequestShortenBatch,
+// чтобы добавить ему поведение (Validate)
 type BatchRequest []RequestShortenBatch
 
 // Validate проверяет весь массив данных разом
