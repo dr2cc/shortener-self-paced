@@ -1,8 +1,8 @@
 package jsonstore
 
 import (
-	"app/internal/entity"
-	"app/internal/storage"
+	"app/internal/domain/link"
+	err_repo "app/internal/lib/repository"
 	"bufio"
 	"bytes"
 	"context"
@@ -38,11 +38,11 @@ func NewFileRepository(filePath string) (*FileRepository, error) {
 
 // SaveBatch сохраняет несколько URL-адресов.
 // Проверяет уникальность URL-адресов и сохраняет их.
-func (repo *FileRepository) SaveBatch(ctx context.Context, batch []entity.ExpandedURL) error {
+func (repo *FileRepository) SaveBatch(ctx context.Context, batch []link.ExpandedURL) error {
 	for _, shortURL := range batch {
 		_, err := repo.FindByID(ctx, shortURL.ID)
 		if err == nil {
-			return storage.NewNotUniqueURLError(shortURL, nil)
+			return err_repo.NewNotUniqueURLError(shortURL, nil)
 		}
 	}
 
@@ -73,69 +73,58 @@ func (repo *FileRepository) SaveBatch(ctx context.Context, batch []entity.Expand
 }
 
 // Save проверяет уникальность URL-адреса и сохраняет его
-func (repo *FileRepository) Save(ctx context.Context, shortURL entity.ExpandedURL) error {
-	_, err := repo.FindByID(ctx, shortURL.ID)
-	if err == nil {
-		return storage.NewNotUniqueURLError(shortURL, nil)
-	}
-
-	data, err := json.Marshal(shortURL)
-	if err != nil {
-		return err
-	}
-
-	repo.mutex.Lock()
+func (repo *FileRepository) Save(ctx context.Context, shortURL link.ExpandedURL) error {
+	repo.mutex.Lock() // Одна блокировка на всё
 	defer repo.mutex.Unlock()
 
-	if _, errWrite := repo.writer.Write(data); errWrite != nil {
-		return errWrite
+	// 1. Сначала ищем дубликат именно по OriginalURL (Iter 13)
+	if _, err := repo.file.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+	scanner := bufio.NewScanner(repo.file)
+	for scanner.Scan() {
+		var entry link.ExpandedURL
+		json.Unmarshal(scanner.Bytes(), &entry)
+		if entry.OriginalURL == shortURL.OriginalURL {
+			// Если нашли URL — возвращаем 409 и старую запись
+			return err_repo.NewNotUniqueURLError(entry, nil)
+		}
+		if entry.ID == shortURL.ID {
+			return err_repo.ErrIDCollision // Техническая коллизия ID
+		}
 	}
 
-	if errWriteByte := repo.writer.WriteByte('\n'); errWriteByte != nil {
-		return errWriteByte
+	// 2. Если всё уникально — пишем в конец
+	data, _ := json.Marshal(shortURL)
+	if _, err := repo.writer.Write(append(data, '\n')); err != nil {
+		return err
 	}
-
-	if errFlush := repo.writer.Flush(); errFlush != nil {
-		return errFlush
-	}
-
-	return nil
+	return repo.writer.Flush()
 }
 
 // FindByID находит URL по идентификатору.
 // Считывает файл строка за строкой и возвращает URL, соответствующий указанному идентификатору.
-func (repo *FileRepository) FindByID(_ context.Context, id string) (entity.ExpandedURL, error) {
+func (repo *FileRepository) FindByID(_ context.Context, id string) (link.ExpandedURL, error) {
 	repo.mutex.RLock()
 	defer repo.mutex.RUnlock()
 
 	if _, err := repo.file.Seek(0, io.SeekStart); err != nil {
-		return entity.ExpandedURL{}, err
+		return link.ExpandedURL{}, err
 	}
 
-	var entry entity.ExpandedURL
+	var entry link.ExpandedURL
 
 	scanner := bufio.NewScanner(repo.file)
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if err := json.NewDecoder(bytes.NewReader(line)).Decode(&entry); err != nil {
-			return entity.ExpandedURL{}, err
+			return link.ExpandedURL{}, err
 		}
 		if entry.ID == id {
 			return entry, nil
 		}
 	}
 
-	return entity.ExpandedURL{}, errors.New("can't find full url by id")
-}
-
-// Close closes file.
-func (repo *FileRepository) Close(_ context.Context) error {
-	return repo.file.Close()
-}
-
-// Check checks if file is ok.
-func (repo *FileRepository) Check(_ context.Context) error {
-	_, err := repo.file.Stat()
-	return err
+	return link.ExpandedURL{}, errors.New("can't find full url by id")
 }

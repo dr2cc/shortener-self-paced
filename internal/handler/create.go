@@ -1,134 +1,162 @@
-package handlers
+package handler
 
 import (
-	"app/internal/entity"
-	"app/internal/storage"
-	"encoding/json"
+	"app/internal/lib/api/dto"
+	"app/internal/lib/httpio"
+	err_repo "app/internal/lib/repository"
+	"app/internal/service"
 	"errors"
 	"io"
 	"net/http"
 )
 
-// "result" - так в ответе, по заданию  на iter7, называется ключ в JSON запросе
-type ResponseAPI struct {
-	Result string `json:"result"`
+// Логика работы слоя http обработчиков (соответственно и каждого обработчика):
+// 1️⃣ Принимаем данные от клиента (обычно в формате json).
+// 2️⃣ Мапим (преобразуем в конкретную объектную модель, структуру) принятые данные по нашей внутренней структуре.
+// 3️⃣ Передаем данные в службу нашего приложения.
+// 4️⃣ Возвращаем клиенту response.
+
+// Определяем отдаваемый статус (для ShortenAPI и ShortenText. BatchShortenAPI пока (03.04.26) не проверял )
+func (h *Controller) mapErrorToStatus(err error) int {
+	var notUniqueErr *err_repo.NotUniqueURLError
+
+	switch {
+	case err == nil:
+		return http.StatusCreated
+	case errors.As(err, &notUniqueErr):
+		return http.StatusConflict
+	default:
+		return http.StatusInternalServerError
+	}
 }
 
-func apiPublicationResult(w http.ResponseWriter, h *Handler, shortURL entity.ExpandedURL, status int) {
-	res := ResponseAPI{
-		Result: h.service.FormatShortURL(shortURL.ID),
+func (h *Controller) BatchShortenAPI(w http.ResponseWriter, r *http.Request) {
+	var input dto.BatchRequest
+
+	// 1️⃣ Принимаем данные из сети, 2️⃣ десериализуем и заполняем (, &input) DTO
+	if !httpio.Decode(w, r, &input) {
+		return // Хелпер всё сделал за нас, просто выходим
 	}
 
-	// marshalling - сортировка (сериаоизация) в json
-	out, err := json.Marshal(res)
+	// Проверяем заполненность URL
+	if err := input.Validate(); err != nil {
+		http.Error(w, "url required", http.StatusBadRequest)
+		// Если хоть один URL пустой, немедленно прекращаем выполнение!
+		return
+	}
+
+	// Превращаем input([]dto.RequestShortenBatch) в serviceInput ([]service.BatchInput)
+	serviceInput := make([]service.BatchInput, len(input))
+	for i, d := range input {
+		serviceInput[i] = service.BatchInput{
+			CorrelationID: d.CorrelationID,
+			OriginalURL:   d.OriginalURL,
+		}
+	}
+
+	// 3️⃣ Отдаем в сервис "чистые" (без json из dto) данные и получаем данные для ответа
+	linkBatch, err := h.shortener.ShortenBatch(r.Context(), serviceInput)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-
-	if _, err = w.Write(out); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// Заполняем структуру для ответа
+	output := make([]dto.ResponseShortenBatch, len(linkBatch))
+	for i, shortURLBatch := range linkBatch {
+		output[i] = dto.ResponseShortenBatch{
+			CorrelationID: shortURLBatch.CorrelationID,
+			ShortURL:      h.shortener.FormatShortURL(shortURLBatch.ID),
+		}
 	}
+
+	// 4️⃣ Возвращаем клиенту response
+	// Для тяжелых данных (batch ничем не ограничен) используем RespondStream
+	httpio.RespondStream(w, r, http.StatusCreated, output) // успех
 }
 
-// Назову json post ручку ShortenAPI - обычно при помощи json создают интерфейс
-func (h *Handler) ShortenAPI(w http.ResponseWriter, r *http.Request) {
-	var v entity.ExpandedURL
+func (h *Controller) ShortenAPI(w http.ResponseWriter, r *http.Request) {
+	var input dto.RequestShorten
 
-	reader, err := getDecompressedReader(r)
+	// 1. Вся валидация транспорта в одной строке
+	// 1️⃣ Принимаем данные из сети, 2️⃣ десериализуем и заполняем (, &input) DTO
+	if !httpio.Decode(w, r, &input) {
+		return // Хелпер обработал все ошибки за нас, просто выходим
+	}
+
+	// 2. Валидация заполненности URL (в едином стиле JSON-ответов)
+	if input.URL == "" {
+		httpio.Respond(w, r, http.StatusBadRequest, map[string]string{"error": "url required"})
+		return
+	}
+
+	// 3️⃣ // Пытаемся сократить URL. Просто вытаскиваем строку из DTO и отдаем сервису
+	link, err := h.shortener.ShortenURL(r.Context(), input.URL)
+
+	// Определяем статус
+	status := h.mapErrorToStatus(err)
+
+	// Если это "неизвестная" ошибка (500), отдаем http.Error и выходим
+	if status == http.StatusInternalServerError {
+		// Используем httpio для ошибок, чтобы сохранить формат JSON
+		httpio.Respond(w, r, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	// Мы "отсекли" плохие ошибки.
+	// Теперь основной поток кода (счастливый путь + 409) идет прямо, без вложенных if.
+
+	// Если мы здесь, значит всё "ОК" (либо создали новый, либо нашли старый 409).
+	// В обоих случаях нам нужно сформировать один и тот же ответ.
+	output := dto.ResponseShorten{
+		Result: h.shortener.FormatShortURL(link.ID),
+	}
+
+	// Один раз создаем output и один раз вызываем Respond. Это избавляет от ошибок при будущем изменении формата ответа.
+
+	// 4️⃣ Возвращаем клиенту response, один раз
+	httpio.Respond(w, r, status, output)
+}
+
+func (h *Controller) ShortenText(w http.ResponseWriter, r *http.Request) {
+	// 1️⃣ Принимаем данные от клиента.
+	// Читаем напрямую из r.Body (Middleware уже всё распаковало).
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		// Тестировать этот случай не будем.
+		// В реальной жизни такая ошибка случается крайне редко (соединение оборвалось прямо во время передачи данных).
+		// Через httptest.NewRequest получить ошибку чтения тела практически невозможно, так как bytes.Buffer или strings.Reader всегда отдают данные успешно.
+		http.Error(w, "cannot read body", http.StatusBadRequest)
 		return
 	}
+	defer r.Body.Close()
 
-	// десериализуем данные json
-	if errDecode := json.NewDecoder(reader).Decode(&v); errDecode != nil {
-		http.Error(w, "cannot decode json", http.StatusBadRequest)
-		return
-	}
-
-	// Так как анмарщаллинг происходит с данными в entity.ExpandedURL (ex. ShortURL),
-	// то структурный тег поля OriginalURL в entity.ExpandedURL ("url")
-	// должен совпадать с ключем "url" запроса, иначе будет "url required"
-	if v.OriginalURL == "" {
+	urlStr := string(body)
+	if urlStr == "" {
 		http.Error(w, "url required", http.StatusBadRequest)
 		return
 	}
 
-	//userID := h.getUserID(r)
+	// 3️⃣ Передаем данные в службу нашего приложения.
+	// Сервис возвращает структуру ExpandedURL
+	newLink, err := h.shortener.ShortenURL(r.Context(), urlStr) // , userID
 
-	// Если нет ошибок и значение url уникально, то err == nil
-	// Если url не уникален, то
-	// err == entity.ExpandedURL{OriginalURL: url, ID:urlID},  &shorteningError{Err:err, ShortURL: shortURL}
-	shortURL, err := h.service.Shorten(r.Context(), v.OriginalURL)
+	// Определяем статус
+	status := h.mapErrorToStatus(err)
 
-	// Iter13 генерация нужного ответа - 409
-	var notUniqueErr *storage.NotUniqueURLError
-	if errors.As(err, &notUniqueErr) {
-		apiPublicationResult(w, h, shortURL, http.StatusConflict)
+	// Если это "неизвестная" ошибка (500), отдаем http.Error и выходим
+	if status == http.StatusInternalServerError {
+		http.Error(w, err.Error(), status)
 		return
 	}
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	apiPublicationResult(w, h, shortURL, http.StatusCreated)
-}
-
-func publicationResult(w http.ResponseWriter, h *Handler, shortURL entity.ExpandedURL, status int) {
-	w.Header().Set("Content-Type", "text/html")
+	// 4️⃣ Возвращаем клиенту response.
+	// 1. Готовим данные
+	content := h.shortener.FormatShortURL(newLink.ID)
+	// 2. Устанавливаем заголовки
+	w.Header().Set("Content-Type", "text/plain")
+	// 3. Отправляем статус
 	w.WriteHeader(status)
-	shortenedURL := h.service.FormatShortURL(shortURL.ID)
-	if _, err := w.Write([]byte(shortenedURL)); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-func (h *Handler) ShortenText(w http.ResponseWriter, r *http.Request) {
-	// Получается этого хватает, а все остальное делает
-	// chi..Use(middleware.Compress ??!
-	reader, err := getDecompressedReader(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	url, err := io.ReadAll(reader)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if string(url) == "" {
-		http.Error(w, "url required", http.StatusBadRequest)
-		return
-	}
-
-	// userID := h.getUserID(r)
-
-	// Если нет ошибок и значение url уникально, то err == nil
-	// Если url не уникален, то
-	// err == entity.ExpandedURL{OriginalURL: url, ID:urlID},  &shorteningError{Err:err, ShortURL: shortURL}
-	shortURL, err := h.service.Shorten(r.Context(), string(url)) // , userID
-
-	// iter13. Проверка на уникальность
-	// Сама проверка в Shorten, а точнеее в методе Save (при записи в хранилище).
-	// Здесь генерируем нужный ответ - 409
-	var notUniqueErr *storage.NotUniqueURLError
-	if errors.As(err, &notUniqueErr) {
-		publicationResult(w, h, shortURL, http.StatusConflict)
-		return
-	}
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	publicationResult(w, h, shortURL, http.StatusCreated)
+	// 4. Пишем тело (ошибку обычно игнорируют)
+	_, _ = w.Write([]byte(content))
 }

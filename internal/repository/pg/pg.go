@@ -2,9 +2,9 @@ package pg
 
 import (
 	"app/internal/config"
-	"app/internal/entity"
-	"app/internal/storage"
-	"app/pkg/logger/sl"
+	"app/internal/domain/link"
+	"app/internal/lib/logger/sl"
+	err_repo "app/internal/lib/repository"
 	"context"
 	"database/sql"
 	"errors"
@@ -20,7 +20,15 @@ type PostgresRepo struct {
 	DB *sql.DB
 }
 
-func NewPostgresRepo(log *slog.Logger, cfg *config.Config) (*PostgresRepo, error) {
+// Есть только в pg
+func (repo *PostgresRepo) CheckHealth(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second) // Даем базе 1 секунду на ответ
+	defer cancel()
+
+	return repo.DB.PingContext(ctx)
+}
+
+func NewPostgresRepo(cfg *config.Config, log *slog.Logger) (*PostgresRepo, error) {
 	// // DSN from environment variables
 	// dsn := os.Getenv("DATABASE_DSN")
 
@@ -43,13 +51,13 @@ func NewPostgresRepo(log *slog.Logger, cfg *config.Config) (*PostgresRepo, error
 	defer cancel()
 
 	if err := db.PingContext(ctx); err != nil {
-		log.Error("error to ping", sl.Err(err))
-		return nil, fmt.Errorf("error to ping db: %v", err)
+		log.Error("error to ping db", sl.Err(err))
+		return nil, err //fmt.Errorf("error to ping db: %v", err)
 	}
 
 	repo := &PostgresRepo{DB: db}
 
-	err = checkTab(log, repo)
+	err = checkTab(repo, log)
 	if err != nil {
 		log.Error("failed to init storage")
 		os.Exit(1)
@@ -59,7 +67,7 @@ func NewPostgresRepo(log *slog.Logger, cfg *config.Config) (*PostgresRepo, error
 }
 
 // Создаем таблицу, если ее еще нет
-func checkTab(log *slog.Logger, repo *PostgresRepo) error {
+func checkTab(repo *PostgresRepo, log *slog.Logger) error {
 
 	stmt, err := repo.DB.Prepare(`
 	CREATE TABLE IF NOT EXISTS aliases(
@@ -85,7 +93,7 @@ func checkTab(log *slog.Logger, repo *PostgresRepo) error {
 }
 
 // Save проверяет уникальность URL-адреса и сохраняет его
-func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ExpandedURL) error {
+func (repo *PostgresRepo) Save(ctx context.Context, shortURL link.ExpandedURL) error {
 	const op = "repository.pg.Save" // Имя текущей функции для логов и ошибок
 	url := shortURL.OriginalURL
 	alias := shortURL.ID
@@ -134,20 +142,18 @@ func (repo *PostgresRepo) Save(ctx context.Context, shortURL entity.ExpandedURL)
 	}
 
 	// Возвращаем пользовательскую ошибку с найденным ID
-	return &storage.NotUniqueURLError{
+	return &err_repo.NotUniqueURLError{
 		Err: nil,
-		ShortURL: entity.ExpandedURL{
+		ShortURL: link.ExpandedURL{
 			OriginalURL: url,
 			ID:          existingID,
 		},
 	}
-
-	// return fmt.Errorf("%s: %w", "23505", err)
 }
 
 // SaveBatch сохраняет несколько URL-адресов.
 // Проверяет уникальность URL-адресов и сохраняет их.
-func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []entity.ExpandedURL) error {
+func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []link.ExpandedURL) error {
 	// 1. Начинаем транзакцию с контекстом
 	// Это гарантирует, что все операции COPY выполняются в рамках одного соединения.
 	tx, err := repo.DB.BeginTx(ctx, nil)
@@ -160,7 +166,6 @@ func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []entity.Expanded
 	// Указываем имя таблицы и список столбцов в целевой таблице БД.
 	// Таблица называется 'aliases' с соответствующими столбцами.
 	stmt, err := tx.PrepareContext(ctx, pq.CopyIn("aliases", "id", "url", "correlation_id"))
-	//stmt, err := repo.DB.PrepareContext(ctx, pq.CopyIn("aliases", "id", "url", "correlation_id"))
 	if err != nil {
 		return fmt.Errorf("failed to prepare COPY statement: %w", err)
 	}
@@ -190,23 +195,13 @@ func (repo *PostgresRepo) SaveBatch(ctx context.Context, batch []entity.Expanded
 	return nil
 }
 
-func (repo *PostgresRepo) Check(ctx context.Context) error {
-	// и вся проверка "здоровья"!
-	return repo.DB.PingContext(ctx)
-}
-
 // FindByID находит URL по идентификатору.
-func (repo *PostgresRepo) FindByID(ctx context.Context, id string) (entity.ExpandedURL, error) {
-	var ent entity.ExpandedURL
+func (repo *PostgresRepo) FindByID(ctx context.Context, id string) (link.ExpandedURL, error) {
+	var ent link.ExpandedURL
 	err := repo.DB.QueryRowContext(
 		ctx,
 		"select url, id from aliases where id=$1",
 		id,
 	).Scan(&ent.OriginalURL, &ent.ID)
 	return ent, err
-}
-
-// Stub function
-func (repo *PostgresRepo) Close(_ context.Context) error {
-	return nil
 }

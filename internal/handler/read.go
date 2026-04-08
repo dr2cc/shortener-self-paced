@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"net/http"
@@ -7,17 +7,17 @@ import (
 )
 
 // Получаем первоначальный url, цель- перенапраление на него при получении сокращенного
-func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
+func (h *Controller) Redirect(w http.ResponseWriter, r *http.Request) {
 	uID := chi.URLParam(r, "id") //nolint:contextcheck
 
-	shortURL, err := h.service.FindURL(r.Context(), uID)
+	shortURL, err := h.shortener.FindURL(r.Context(), uID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if shortURL.OriginalURL == "" {
-		http.Error(w, "cant find full url", http.StatusNotFound)
+		http.Error(w, "cant find full url", http.StatusBadRequest)
 		return
 	}
 
