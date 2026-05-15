@@ -35,7 +35,7 @@ func Run(cfg *config.Config) {
 	log.Debug("logger debug mode enabled")
 
 	// Repository🧹🏦
-	// Создаем объект хранилища, в соответствии с настройками
+	// Создаем объект хранилища.
 	repo := choosingStorage(log, cfg)
 
 	// Use-Case🧹🏦
